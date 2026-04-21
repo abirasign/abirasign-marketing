@@ -4,6 +4,14 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ContactController;
 
+
+Route::get('/robots.txt', function () {
+    $content = app()->environment('production')
+        ? "User-agent: *\nDisallow:\n\nSitemap: https://abirasign.com/sitemap.xml"
+        : "User-agent: *\nDisallow: /";
+    return response($content, 200)->header('Content-Type', 'text/plain');
+})->name('robots');
+
 // Marketing pages
 Route::get('/', fn() => view('home'))->name('home');
 Route::get('/pricing', fn() => view('pricing'))->name('pricing');
