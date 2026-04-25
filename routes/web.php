@@ -23,6 +23,8 @@ Route::post('/contact', [ContactController::class, 'submit'])->name('contact.sub
 Route::get('/contact/thank-you', [ContactController::class, 'thankYou'])->name('contact.thankyou');
 
 // Signup flow
+// Signup flow
 Route::get('/signup', [SignupController::class, 'show'])->name('signup');
 Route::post('/signup', [SignupController::class, 'submit'])->name('signup.submit');
+Route::get('/signup/success', [SignupController::class, 'success'])->name('signup.success');
 Route::get('/signup/thank-you', [SignupController::class, 'thankYou'])->name('signup.thankyou');

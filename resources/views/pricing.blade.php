@@ -217,7 +217,7 @@
                     <li><span class="ck">✓</span> Dedicated onboarding</li>
                     <li><span class="ck">✓</span> Priority support SLA</li>
                 </ul>
-                <a href="mailto:hello@abirasign.com?subject=Enterprise inquiry" class="plan-btn plan-btn-outline">Contact sales</a>
+                <a href="/contact?reason=sales" class="plan-btn plan-btn-outline">Contact sales</a>
             </div>
 
         </div>

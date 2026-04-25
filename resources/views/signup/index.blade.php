@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
 @section('title', 'Get Started — AbiraSign')
-@section('meta_description', 'Sign up for AbiraSign. E-signatures and digital intake forms for any business. HIPAA compliance add-on available.')
+@section('meta_description', 'Sign up for AbiraSign. E-signatures and digital patient intake forms. HIPAA compliance included on Professional and Enterprise.')
 
 @push('styles')
 <style>
     .signup-wrap { min-height: calc(100vh - 60px); background: var(--bg-alt); display: flex; align-items: flex-start; justify-content: center; padding: 64px 20px; }
-    .signup-grid { display: grid; grid-template-columns: 1fr 420px; gap: 56px; max-width: 960px; width: 100%; align-items: start; }
+    .signup-grid { display: grid; grid-template-columns: 1fr 440px; gap: 56px; max-width: 980px; width: 100%; align-items: start; }
     .signup-left { padding-top: 8px; }
     .signup-left h1 { font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; line-height: 1.25; }
     .signup-left p { font-size: 16px; color: var(--text-secondary); line-height: 1.65; margin-bottom: 32px; }
@@ -18,17 +18,29 @@
     .signup-point-text strong { color: var(--text-primary); font-weight: 600; }
     .signup-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 36px; }
     .signup-card h2 { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
-    .signup-card-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 28px; }
+    .signup-card-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; }
     .form-group { margin-bottom: 18px; }
     .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
-    .form-label span { color: var(--text-muted); font-weight: 400; }
-    .form-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 14px; color: var(--text-primary); background: #fff; transition: border-color .15s; outline: none; }
+    .form-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 14px; color: var(--text-primary); background: #fff; transition: border-color .15s; outline: none; box-sizing: border-box; }
     .form-input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14,116,144,.08); }
     .form-input.error { border-color: #EF4444; }
-    .form-select { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 14px; color: var(--text-primary); background: #fff; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; cursor: pointer; outline: none; transition: border-color .15s; }
+    .form-select { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 14px; color: var(--text-primary); background: #fff; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; cursor: pointer; outline: none; transition: border-color .15s; box-sizing: border-box; }
     .form-select:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14,116,144,.08); }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form-error { font-size: 12px; color: #EF4444; margin-top: 4px; display: block; }
+
+    /* Billing toggle */
+    .billing-toggle-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .billing-toggle-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; transition: color .2s; }
+    .billing-toggle-label.active { color: var(--text-primary); font-weight: 600; }
+    .toggle { position: relative; width: 42px; height: 24px; cursor: pointer; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-track { position: absolute; inset: 0; background: var(--teal); border-radius: 99px; transition: background .2s; }
+    .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: transform .2s; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(18px); }
+    .annual-badge { background: #DCFCE7; color: #166534; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--radius-pill); }
+
+    /* Plan options */
     .plan-options { display: flex; flex-direction: column; gap: 10px; }
     .plan-option { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: border-color .15s; }
     .plan-option:hover { border-color: #9CA3AF; }
@@ -37,20 +49,21 @@
     .plan-option-info { flex: 1; }
     .plan-option-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
     .plan-option-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-    .plan-option-price { font-size: 14px; font-weight: 700; color: var(--teal); flex-shrink: 0; }
-    .hipaa-option { margin-top: 18px; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; background: var(--bg-surface); }
-    .hipaa-option-header { display: flex; align-items: center; gap: 10px; cursor: pointer; }
-    .hipaa-option-header input[type=checkbox] { accent-color: var(--teal); flex-shrink: 0; }
-    .hipaa-option-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
-    .hipaa-option-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-    .hipaa-unavail { font-size: 12px; color: var(--text-muted); margin-top: 8px; padding: 8px 10px; background: #FEF9C3; border-radius: var(--radius-sm); }
+    .plan-option-price { font-size: 13px; font-weight: 700; color: var(--teal); flex-shrink: 0; text-align: right; }
+
+    /* HIPAA status badge */
+    .hipaa-status { margin-top: 12px; padding: 10px 14px; border-radius: var(--radius-md); font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+    .hipaa-status.included { background: #DCFCE7; color: #166534; }
+    .hipaa-status.excluded { background: #FEF9C3; color: #854D0E; }
+
     .form-divider { height: 1px; background: var(--border); margin: 24px 0; }
     .submit-btn { width: 100%; padding: 13px; background: var(--teal); color: #fff; border: none; border-radius: var(--radius-md); font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity .15s; margin-top: 4px; }
     .submit-btn:hover { opacity: .9; }
-    .submit-btn:disabled { opacity: .6; cursor: not-allowed; }
+    .submit-btn.enterprise-btn { background: var(--text-primary); }
     .form-footer { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 14px; line-height: 1.6; }
     .form-footer a { color: var(--teal); }
     .alert-error { background: #FEF2F2; border: 1px solid #FECACA; border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 20px; font-size: 14px; color: #B91C1C; }
+
     @media (max-width: 860px) {
         .signup-grid { grid-template-columns: 1fr; gap: 32px; }
         .signup-left { padding-top: 0; }
@@ -72,19 +85,19 @@
         <div class="signup-left">
             <div class="section-label">Get started</div>
             <h1>Start sending documents for signature today</h1>
-            <p>Tell us about your business and we'll get your account set up. No credit card required to get started on Pay as you go.</p>
+            <p>Tell us about your practice or business and we'll get your account set up. No credit card required on Pay as you go.</p>
             <div class="signup-points">
                 <div class="signup-point">
                     <div class="signup-point-icon">
                         <svg viewBox="0 0 13 13" fill="none"><path d="M2 7l3 3 6-6" stroke="#0E7490" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </div>
-                    <div class="signup-point-text"><strong>No monthly fees on bundles.</strong> Buy envelopes when you need them — they never expire.</div>
+                    <div class="signup-point-text"><strong>No per-envelope fees on paid plans.</strong> Unlimited sends on Starter, Professional, and Enterprise.</div>
                 </div>
                 <div class="signup-point">
                     <div class="signup-point-icon">
                         <svg viewBox="0 0 13 13" fill="none"><path d="M2 7l3 3 6-6" stroke="#0E7490" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </div>
-                    <div class="signup-point-text"><strong>HIPAA compliance available.</strong> Add a dedicated database and BAA on any paid bundle.</div>
+                    <div class="signup-point-text"><strong>HIPAA compliance included.</strong> Professional and Enterprise come with a dedicated database and BAA — no add-on fees.</div>
                 </div>
                 <div class="signup-point">
                     <div class="signup-point-icon">
@@ -108,9 +121,7 @@
             <p class="signup-card-sub">Takes less than 2 minutes.</p>
 
             @if($errors->any())
-                <div class="alert-error">
-                    Please correct the errors below and try again.
-                </div>
+                <div class="alert-error">Please correct the errors below and try again.</div>
             @endif
 
             <form method="POST" action="{{ route('signup.submit') }}" id="signupForm">
@@ -157,38 +168,56 @@
 
                 <div class="form-divider"></div>
 
+                {{-- Billing toggle --}}
+                <div class="form-group">
+                    <label class="form-label">Billing term</label>
+                    <div class="billing-toggle-wrap">
+                        <span class="billing-toggle-label" id="label-monthly">Monthly</span>
+                        <label class="toggle">
+                            <input type="checkbox" id="billingToggle" onchange="onBillingChange(this.checked)">
+                            <div class="toggle-track"></div>
+                            <div class="toggle-thumb"></div>
+                        </label>
+                        <span class="billing-toggle-label" id="label-annual">Annual <span class="annual-badge">Save 10%</span></span>
+                    </div>
+                </div>
+
+                {{-- Hidden billing input submitted with form --}}
+                <input type="hidden" name="billing" id="billingInput" value="annual">
+
+                {{-- Plan selector --}}
                 <div class="form-group">
                     <label class="form-label">Select a plan</label>
                     <div class="plan-options" id="planOptions">
-                        <label class="plan-option {{ old('plan') == 'payg' || !old('plan') ? 'selected' : '' }}">
-                            <input type="radio" name="plan" value="payg" {{ old('plan') == 'payg' || !old('plan') ? 'checked' : '' }} onchange="onPlanChange()">
+                        <label class="plan-option" data-plan="payg">
+                            <input type="radio" name="plan" value="payg" onchange="onPlanChange()">
                             <div class="plan-option-info">
                                 <div class="plan-option-name">Pay as you go</div>
-                                <div class="plan-option-desc">No commitment — pay per envelope</div>
+                                <div class="plan-option-desc">No monthly fee — pay per envelope sent</div>
                             </div>
                             <div class="plan-option-price">$10/env</div>
                         </label>
-                        <label class="plan-option {{ old('plan') == 'starter' ? 'selected' : '' }}">
-                            <input type="radio" name="plan" value="starter" {{ old('plan') == 'starter' ? 'checked' : '' }} onchange="onPlanChange()">
+                        <label class="plan-option" data-plan="starter">
+                            <input type="radio" name="plan" value="starter" onchange="onPlanChange()">
                             <div class="plan-option-info">
-                                <div class="plan-option-name">Starter bundle</div>
-                                <div class="plan-option-desc">50 envelopes, never expire</div>
+                                <div class="plan-option-name">Starter</div>
+                                <div class="plan-option-desc">Unlimited sends · general use</div>
                             </div>
-                            <div class="plan-option-price">$XX</div>
+                            <div class="plan-option-price" id="price-starter">$40.50/user/mo</div>
                         </label>
-                        <label class="plan-option {{ old('plan') == 'standard' ? 'selected' : '' }}">
-                            <input type="radio" name="plan" value="standard" {{ old('plan') == 'standard' ? 'checked' : '' }} onchange="onPlanChange()">
+                        <label class="plan-option" data-plan="professional">
+                            <input type="radio" name="plan" value="professional" onchange="onPlanChange()">
                             <div class="plan-option-info">
-                                <div class="plan-option-name">Standard bundle</div>
-                                <div class="plan-option-desc">250 envelopes, never expire</div>
+                                <div class="plan-option-name">Professional</div>
+                                <div class="plan-option-desc">Unlimited sends · HIPAA + BAA included</div>
                             </div>
-                            <div class="plan-option-price">$XX</div>
+                            <div class="plan-option-price" id="price-professional">$67.50/user/mo</div>
                         </label>
-                        <label class="plan-option {{ old('plan') == 'enterprise' ? 'selected' : '' }}">
-                            <input type="radio" name="plan" value="enterprise" {{ old('plan') == 'enterprise' ? 'checked' : '' }} onchange="onPlanChange()">
+                        <label class="plan-option" data-plan="enterprise">
+                            <input type="radio" name="plan" value="enterprise" onchange="onPlanChange()">
                             <div class="plan-option-info">
                                 <div class="plan-option-name">Enterprise</div>
-                                <div class="plan-option-desc">Custom volume — we'll contact you</div>
+                                <div class="plan-option-desc">Multi-location · API · white-label · priority SLA</div>
                             </div>
                             <div class="plan-option-price">Custom</div>
                         </label>
@@ -196,24 +225,14 @@
                     @error('plan')<span class="form-error">{{ $message }}</span>@enderror
                 </div>
 
-                <div class="hipaa-option" id="hipaaOption">
-                    <label class="hipaa-option-header">
-                        <input type="checkbox" name="hipaa_addon" value="1" id="hipaaCheckbox" {{ old('hipaa_addon') ? 'checked' : '' }}>
-                        <div>
-                            <div class="hipaa-option-title">Add HIPAA compliance <span style="color: var(--teal); font-weight: 700;">+$49</span></div>
-                            <div class="hipaa-option-subtitle">Dedicated database + Business Associate Agreement</div>
-                        </div>
-                    </label>
-                    <div id="hipaaUnavail" class="hipaa-unavail" style="display: none;">
-                        HIPAA compliance is not available on Pay as you go. Select a bundle to enable this option.
-                    </div>
+                {{-- HIPAA status badge --}}
+                <div id="hipaaStatus" class="hipaa-status excluded">
+                    <span>⚠</span> No HIPAA — not for protected health information
                 </div>
 
                 <div class="form-divider"></div>
 
-                <button type="submit" class="submit-btn" id="submitBtn">
-                    Continue →
-                </button>
+                <button type="submit" class="submit-btn" id="submitBtn">Continue →</button>
 
                 <p class="form-footer">
                     By continuing you agree to our <a href="{{ route('terms') }}">Terms of Service</a> and <a href="{{ route('privacy') }}">Privacy Policy</a>.<br>
@@ -229,27 +248,78 @@
 
 @push('scripts')
 <script>
+// Pricing data
+const PRICES = {
+    starter:      { monthly: '$45.00/user/mo',  annual: '$40.50/user/mo' },
+    professional: { monthly: '$75.00/user/mo',  annual: '$67.50/user/mo' },
+};
+
+// Read initial state from URL params (set by pricing page CTAs)
+const urlParams  = new URLSearchParams(window.location.search);
+const initPlan   = urlParams.get('plan')    || '{{ old("plan", $plan) }}';
+const initBilling = urlParams.get('billing') || '{{ old("billing", $billing) }}';
+
+function onBillingChange(isAnnual) {
+    const term = isAnnual ? 'annual' : 'monthly';
+    document.getElementById('billingInput').value = term;
+
+    // Update price labels
+    document.getElementById('price-starter').textContent      = PRICES.starter[term];
+    document.getElementById('price-professional').textContent = PRICES.professional[term];
+
+    // Update toggle labels
+    document.getElementById('label-monthly').classList.toggle('active', !isAnnual);
+    document.getElementById('label-annual').classList.toggle('active', isAnnual);
+}
+
 function onPlanChange() {
     const selected = document.querySelector('input[name="plan"]:checked')?.value;
-    const hipaaOption = document.getElementById('hipaaOption');
-    const hipaaCheckbox = document.getElementById('hipaaCheckbox');
-    const hipaaUnavail = document.getElementById('hipaaUnavail');
 
+    // Update selected styling
     document.querySelectorAll('.plan-option').forEach(el => el.classList.remove('selected'));
     document.querySelector(`input[name="plan"]:checked`)?.closest('.plan-option')?.classList.add('selected');
 
-    if (selected === 'payg') {
-        hipaaCheckbox.checked = false;
-        hipaaCheckbox.disabled = true;
-        hipaaUnavail.style.display = 'block';
-        hipaaOption.style.opacity = '.6';
+    // HIPAA badge
+    const hipaaEl  = document.getElementById('hipaaStatus');
+    const hipaaPlans = ['professional', 'enterprise'];
+    if (hipaaPlans.includes(selected)) {
+        hipaaEl.className = 'hipaa-status included';
+        hipaaEl.innerHTML = '<span>✓</span> HIPAA compliance + BAA included';
     } else {
-        hipaaCheckbox.disabled = false;
-        hipaaUnavail.style.display = 'none';
-        hipaaOption.style.opacity = '1';
+        hipaaEl.className = 'hipaa-status excluded';
+        hipaaEl.innerHTML = '<span>⚠</span> No HIPAA — not for protected health information';
     }
+
+    // Submit button label
+    const btn = document.getElementById('submitBtn');
+if (selected === 'enterprise') {
+    btn.textContent = 'Contact sales →';
+    btn.classList.add('enterprise-btn');
+    btn.type = 'button';
+    btn.onclick = () => window.location.href = '/contact?reason=sales';
+} else {
+    btn.textContent = 'Continue →';
+    btn.classList.remove('enterprise-btn');
+    btn.type = 'submit';
+    btn.onclick = null;
+}
 }
 
-document.addEventListener('DOMContentLoaded', () => onPlanChange());
+// Initialise on load
+document.addEventListener('DOMContentLoaded', () => {
+    // Set billing toggle
+    const isAnnual = initBilling !== 'monthly';
+    document.getElementById('billingToggle').checked = isAnnual;
+    onBillingChange(isAnnual);
+
+    // Set plan radio
+    const planRadio = document.querySelector(`input[name="plan"][value="${initPlan}"]`);
+    if (planRadio) {
+        planRadio.checked = true;
+    } else {
+        document.querySelector('input[name="plan"][value="payg"]').checked = true;
+    }
+    onPlanChange();
+});
 </script>
 @endpush

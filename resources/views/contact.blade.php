@@ -178,4 +178,17 @@
     </div>
 </div>
 
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const reason = new URLSearchParams(window.location.search).get('reason');
+    const validReasons = ['sales','hipaa','general','support','billing','other'];
+    if (reason && validReasons.includes(reason)) {
+        const select = document.getElementById('subject');
+        if (select) select.value = reason;
+    }
+});
+</script>
+@endpush
+
 @endsection
