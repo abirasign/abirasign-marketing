@@ -32,5 +32,5 @@ Route::get('/signup/thank-you', [SignupController::class, 'thankYou'])->name('si
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])->name('stripe.webhook');
 
 // Quote checkout (enterprise)
-Route::get('/quote-checkout/{token}',         [QuoteCheckoutController::class, 'checkout'])->name('quote.checkout');
 Route::get('/quote-checkout/success',         [QuoteCheckoutController::class, 'success'])->name('quote.checkout.success');
+Route::get('/quote-checkout/{token}',         [QuoteCheckoutController::class, 'checkout'])->name('quote.checkout');
