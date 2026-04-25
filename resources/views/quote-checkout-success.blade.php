@@ -1,54 +1,111 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AbiraSign — Payment confirmed</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { margin:0; padding:0; background:#f5f5f3; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:#2C2C2A; }
-    .wrap { max-width:580px; margin:0 auto; padding:60px 20px; text-align:center; }
-    .logo { font-size:22px; font-weight:600; color:#534AB7; margin-bottom:40px; display:block; }
-    .logo span { color:#AFA9EC; }
-    .card { background:#fff; border-radius:12px; border:1px solid #D3D1C7; padding:40px 32px; }
-    .icon { font-size:48px; margin-bottom:16px; }
-    h1 { font-size:24px; font-weight:700; margin:0 0 12px; }
-    p { font-size:14px; color:#5F5E5A; line-height:1.7; margin:0 0 16px; }
-    .detail { background:#F1EFE8; border-radius:8px; padding:16px 20px; margin:20px 0; text-align:left; }
-    .detail p { margin:0 0 6px; font-size:13px; }
-    .detail p:last-child { margin:0; }
-    .hipaa-note { background:#ede9ff; border-radius:8px; padding:14px 18px; font-size:13px; color:#534AB7; font-weight:500; margin-top:16px; }
-    .footer { margin-top:32px; font-size:12px; color:#888780; }
-  </style>
-</head>
-<body>
-<div class="wrap">
-  <span class="logo"><span>Abira</span>Sign</span>
+@extends('layouts.app')
 
-  <div class="card">
-    <div class="icon">✅</div>
-    <h1>Payment confirmed!</h1>
-    <p>Thank you — your payment has been received. Your AbiraSign Enterprise account is being set up and you'll receive a welcome email with next steps shortly.</p>
+@section('title', 'Payment Confirmed — AbiraSign')
 
-    @if($quote)
-      <div class="detail">
-        <p><strong>Client:</strong> {{ $quote->client_name }}</p>
-        <p><strong>Quote ID:</strong> {{ $quote->quote_id }}</p>
-        <p><strong>Billing term:</strong> {{ $quote->billing_term === 'triennial' ? 'Triennial (3 years)' : 'Annual (1 year)' }}</p>
-        <p><strong>Annual total:</strong> ${{ number_format($quote->annual_total, 2) }}</p>
-      </div>
+@push('styles')
+<style>
+    .thankyou-wrap { min-height: calc(100vh - 60px); background: var(--bg-alt); display: flex; align-items: center; justify-content: center; padding: 64px 20px; }
+    .thankyou-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 56px 48px; max-width: 520px; width: 100%; text-align: center; }
+    .thankyou-icon { width: 56px; height: 56px; border-radius: 50%; background: #DCFCE7; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
+    .thankyou-card h1 { font-size: 26px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; }
+    .thankyou-card p { font-size: 15px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 10px; }
+    .thankyou-details { background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px 20px; margin: 24px 0; text-align: left; }
+    .thankyou-detail-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; padding: 5px 0; }
+    .thankyou-detail-row .detail-label { color: var(--text-secondary); }
+    .thankyou-detail-row .detail-val { font-weight: 600; color: var(--text-primary); }
+    .thankyou-steps { text-align: left; margin: 24px 0; display: flex; flex-direction: column; gap: 12px; }
+    .thankyou-step { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+    .thankyou-step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--teal-light); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--teal-dark); flex-shrink: 0; margin-top: 1px; }
+    .hipaa-notice { background: #ede9ff; border: 1px solid #c4b5fd; border-radius: var(--radius-md); padding: 14px 18px; margin: 16px 0; font-size: 14px; color: #5b21b6; text-align: left; }
+    .thankyou-card .btn { display: inline-block; margin-top: 8px; }
+    @media (max-width: 480px) {
+        .thankyou-card { padding: 36px 24px; }
+    }
+</style>
+@endpush
 
-      @if($quote->hipaa_required)
-        <div class="hipaa-note">
-          🔒 A Business Associate Agreement (BAA) will be sent to {{ $quote->contact_email }} for signature before your account goes live.
+@section('content')
+
+<div class="thankyou-wrap">
+    <div class="thankyou-card">
+
+        <div class="thankyou-icon">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                <path d="M5 13l5.5 5.5L21 8" stroke="#16A34A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
         </div>
-      @endif
-    @endif
 
-    <p style="margin-top:24px;">Questions? Contact us at <a href="mailto:support@abirasign.com" style="color:#534AB7;">support@abirasign.com</a></p>
-  </div>
+        <h1>Payment confirmed!</h1>
+        <p>
+            @if($quote)
+                Thank you, {{ $quote->contact_name }}. Your payment has been received and your AbiraSign Enterprise account is being set up.
+            @else
+                Your payment has been received and your account is being set up.
+            @endif
+        </p>
+        <p>Keep an eye on <strong>{{ $quote->contact_email ?? 'your inbox' }}</strong> — you'll receive a welcome email with next steps shortly.</p>
 
-  <div class="footer">&copy; AbiraSign &mdash; a product of BrightNet Technologies LLC</div>
+        @if($quote)
+            <div class="thankyou-details">
+                <div class="thankyou-detail-row">
+                    <span class="detail-label">Client</span>
+                    <span class="detail-val">{{ $quote->client_name }}</span>
+                </div>
+                <div class="thankyou-detail-row">
+                    <span class="detail-label">Quote ID</span>
+                    <span class="detail-val">{{ $quote->quote_id }}</span>
+                </div>
+                <div class="thankyou-detail-row">
+                    <span class="detail-label">Plan</span>
+                    <span class="detail-val">Enterprise</span>
+                </div>
+                <div class="thankyou-detail-row">
+                    <span class="detail-label">Billing term</span>
+                    <span class="detail-val">{{ $quote->billing_term === 'triennial' ? 'Triennial (3 years)' : 'Annual (1 year)' }}</span>
+                </div>
+                <div class="thankyou-detail-row">
+                    <span class="detail-label">Annual total</span>
+                    <span class="detail-val">${{ number_format($quote->annual_total, 2) }}/yr</span>
+                </div>
+                @if($quote->hipaa_required)
+                    <div class="thankyou-detail-row">
+                        <span class="detail-label">HIPAA + BAA</span>
+                        <span class="detail-val" style="color:#16A34A;">✓ Required</span>
+                    </div>
+                @endif
+            </div>
+
+            @if($quote->hipaa_required)
+                <div class="hipaa-notice">
+                    🔒 <strong>BAA required</strong> — A Business Associate Agreement will be sent to {{ $quote->contact_email }} for signature before your account goes live.
+                </div>
+            @endif
+        @endif
+
+        <div class="thankyou-steps">
+            <div class="thankyou-step">
+                <div class="thankyou-step-num">1</div>
+                Your payment receipt will be emailed to you from Stripe shortly.
+            </div>
+            <div class="thankyou-step">
+                <div class="thankyou-step-num">2</div>
+                @if($quote?->hipaa_required)
+                    We'll send your Business Associate Agreement for signature before activating your account.
+                @else
+                    You'll receive a welcome email with a link to set up your password and access your dashboard.
+                @endif
+            </div>
+            <div class="thankyou-step">
+                <div class="thankyou-step-num">3</div>
+                Your account will be active and ready to send documents — usually within one business day.
+            </div>
+        </div>
+
+        <p style="font-size:13px;color:var(--text-secondary);margin-top:8px;">
+            Questions? Contact us at <a href="mailto:support@abirasign.com" style="color:var(--teal-dark);">support@abirasign.com</a>
+        </p>
+
+    </div>
 </div>
-</body>
-</html>
+
+@endsection
