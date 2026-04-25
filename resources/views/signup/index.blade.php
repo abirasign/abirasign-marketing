@@ -232,9 +232,29 @@
                     @error('plan')<span class="form-error">{{ $message }}</span>@enderror
                 </div>
 
-                {{-- HIPAA status badge --}}
-                <div id="hipaaStatus" class="hipaa-status excluded">
-                    <span>⚠</span> No HIPAA — not for protected health information
+                {{-- HIPAA section --}}
+                <div id="hipaaSection">
+                    <div id="hipaaStatus" class="hipaa-status excluded">
+                        <span>⚠</span> No HIPAA — not for protected health information
+                    </div>
+                    <div id="hipaaToggleSection" style="display:none; margin-top:12px; border:1px solid var(--border); border-radius:var(--radius-md); padding:14px;">
+                        <div style="display:flex; align-items:flex-start; gap:12px;">
+                            <div style="padding-top:2px;">
+                                <label class="toggle" style="width:36px; height:20px;">
+                                    <input type="checkbox" id="hipaaToggle" name="hipaa_required" value="1" onchange="onHipaaChange(this.checked)">
+                                    <div class="toggle-track"></div>
+                                    <div class="toggle-thumb" style="width:14px; height:14px; top:3px; left:3px;"></div>
+                                </label>
+                            </div>
+                        <div>
+                            <div style="font-size:14px; font-weight:600; color:var(--text-primary);">Enable HIPAA compliance + BAA</div>
+                                <div style="font-size:12px; color:var(--text-secondary); margin-top:3px; line-height:1.55;">Includes dedicated database and Business Associate Agreement. Required if you handle protected health information (PHI). A BAA will be sent to you before your account is activated.</div>
+                            </div>
+                        </div>
+                        <div id="hipaaOnBadge" style="display:none; margin-top:10px;" class="hipaa-status included">
+                            <span>✓</span> HIPAA + BAA will be sent before activation
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-divider"></div>
@@ -286,18 +306,42 @@ function onBillingChange(isAnnual) {
     updatePrices();
 }
 
+function onHipaaChange(isOn) {
+    document.getElementById('hipaaOnBadge').style.display = isOn ? 'flex' : 'none';
+    const status = document.getElementById('hipaaStatus');
+    if (isOn) {
+        status.className = 'hipaa-status included';
+        status.innerHTML = '<span>✓</span> HIPAA + BAA included — BAA sent before activation';
+    } else {
+        status.className = 'hipaa-status excluded';
+        status.innerHTML = '<span>⚠</span> No HIPAA — general use only';
+    }
+}
+
 function onPlanChange() {
     const selected = document.querySelector('input[name="plan"]:checked')?.value;
     document.querySelectorAll('.plan-option').forEach(el => el.classList.remove('selected'));
     document.querySelector(`input[name="plan"]:checked`)?.closest('.plan-option')?.classList.add('selected');
 
-    const hipaaEl = document.getElementById('hipaaStatus');
-    if (['professional', 'enterprise'].includes(selected)) {
-        hipaaEl.className = 'hipaa-status included';
-        hipaaEl.innerHTML = '<span>✓</span> HIPAA compliance + BAA included';
+    const hipaaStatus        = document.getElementById('hipaaStatus');
+    const hipaaToggleSection = document.getElementById('hipaaToggleSection');
+    const hipaaToggle        = document.getElementById('hipaaToggle');
+
+    if (selected === 'professional') {
+        hipaaToggleSection.style.display = 'block';
+        hipaaStatus.style.display = 'none';
+        onHipaaChange(hipaaToggle.checked);
+    } else if (selected === 'enterprise') {
+        hipaaToggleSection.style.display = 'none';
+        hipaaStatus.style.display = 'flex';
+        hipaaStatus.className = 'hipaa-status included';
+        hipaaStatus.innerHTML = '<span>✓</span> HIPAA compliance + BAA included';
     } else {
-        hipaaEl.className = 'hipaa-status excluded';
-        hipaaEl.innerHTML = '<span>⚠</span> No HIPAA — not for protected health information';
+        hipaaToggleSection.style.display = 'none';
+        hipaaStatus.style.display = 'flex';
+        hipaaStatus.className = 'hipaa-status excluded';
+        hipaaStatus.innerHTML = '<span>⚠</span> No HIPAA — not for protected health information';
+        hipaaToggle.checked = false;
     }
 
     const btn = document.getElementById('submitBtn');

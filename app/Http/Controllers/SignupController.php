@@ -27,6 +27,7 @@ class SignupController extends Controller
             'billing'       => 'required|in:monthly,annual',
             'practice_type' => 'required|in:healthcare,legal,real_estate,hr,fitness,general',
             'num_users' => 'required|integer|min:1|max:9999',
+            'hipaa_required' => 'sometimes|boolean',
         ]);
 
         // Store lead data in session for use after Stripe redirect
@@ -39,6 +40,7 @@ class SignupController extends Controller
             'signup_phone'        => $request->phone,
             'signup_practice_type'=> $request->practice_type,
             'signup_num_users' => $request->num_users,
+            'signup_hipaa' => $request->boolean('hipaa_required'),
         ]);
 
         // PAYG — no Stripe checkout, go straight to thank-you
@@ -66,13 +68,14 @@ class SignupController extends Controller
         Stripe::setApiKey(env('STRIPE_SECRET'));
 
         $meta = [
-    'plan'          => $request->plan,
-    'billing'       => $request->billing,
-    'practice_name' => $request->practice_name,
-    'contact_name'  => $request->contact_name,
-    'phone'         => $request->phone,
-    'practice_type' => $request->practice_type,
-    'num_users' => $request->num_users,
+            'plan'          => $request->plan,
+            'billing'       => $request->billing,
+            'practice_name' => $request->practice_name,
+            'contact_name'  => $request->contact_name,
+            'phone'         => $request->phone,
+            'practice_type' => $request->practice_type,
+            'num_users' => $request->num_users,
+            'hipaa_required' => $request->boolean('hipaa_required') ? '1' : '0',
 ];
 
 $checkoutSession = StripeSession::create([
