@@ -237,24 +237,20 @@
                     <div id="hipaaStatus" class="hipaa-status excluded">
                         <span>⚠</span> No HIPAA — not for protected health information
                     </div>
-                    <div id="hipaaToggleSection" style="display:none; margin-top:12px; border:1px solid var(--border); border-radius:var(--radius-md); padding:14px;">
-                        <div style="display:flex; align-items:flex-start; gap:12px;">
-                            <div style="padding-top:2px;">
-                                <label class="toggle" style="width:36px; height:20px;">
-                                    <input type="checkbox" id="hipaaToggle" name="hipaa_required" value="1" onchange="onHipaaChange(this.checked)">
-                                    <div class="toggle-track"></div>
-                                    <div class="toggle-thumb" style="width:14px; height:14px; top:3px; left:3px;"></div>
-                                </label>
-                            </div>
-                        <div>
-                            <div style="font-size:14px; font-weight:600; color:var(--text-primary);">Enable HIPAA compliance + BAA</div>
-                                <div style="font-size:12px; color:var(--text-secondary); margin-top:3px; line-height:1.55;">Includes dedicated database and Business Associate Agreement. Required if you handle protected health information (PHI). A BAA will be sent to you before your account is activated.</div>
-                            </div>
-                        </div>
-                        <div id="hipaaOnBadge" style="display:none; margin-top:10px;" class="hipaa-status included">
-                            <span>✓</span> HIPAA + BAA will be sent before activation
-                        </div>
-                    </div>
+                    <div id="hipaaToggleSection" style="display:none; margin-top:12px; border:1px solid var(--border); border-radius:var(--radius-md); padding:14px 16px;">
+    <div style="display:flex; align-items:flex-start; gap:14px;">
+        <div style="flex-shrink:0; padding-top:2px;">
+            <input type="checkbox" id="hipaaToggle" name="hipaa_required" value="1" onchange="onHipaaChange(this.checked)" style="width:18px; height:18px; accent-color:var(--teal); cursor:pointer; margin:0;">
+        </div>
+        <div style="flex:1;">
+            <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:4px;">Enable HIPAA compliance + BAA</div>
+            <div style="font-size:12px; color:var(--text-secondary); line-height:1.6;">Includes a dedicated database and Business Associate Agreement. Required if you handle protected health information (PHI). A BAA will be sent to you before your account is activated.</div>
+        </div>
+    </div>
+    <div id="hipaaOnBadge" style="display:none; margin-top:10px; padding:8px 12px; background:#DCFCE7; border-radius:var(--radius-md); font-size:12px; font-weight:600; color:#166534;">
+        ✓ HIPAA + BAA will be sent to you before activation
+    </div>
+</div>
                 </div>
 
                 <div class="form-divider"></div>

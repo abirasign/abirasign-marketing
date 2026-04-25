@@ -40,7 +40,7 @@
         default        => ucfirst($plan),
     };
     $billingLabel = $billing === 'annual' ? 'Annual (10% discount)' : 'Monthly';
-    $hipaa = in_array($plan, ['professional', 'enterprise']);
+    $hipaa = session('signup_hipaa', false) && in_array($plan, ['professional', 'enterprise']);
     $isPaid = in_array($plan, ['starter', 'professional', 'enterprise']);
 @endphp
 
@@ -99,7 +99,7 @@
             </div>
         </div>
 
-        <a href="{{ route('home') }}" class="btn btn-ghost">Back to home</a>
+        <a href="{{ env('APP_LOGIN_URL', 'https://dev.abirasign.com/login') }}" class="btn btn-primary">Log in to your account →</a>
 
     </div>
 </div>

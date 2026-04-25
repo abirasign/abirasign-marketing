@@ -58,8 +58,22 @@ class SignupController extends Controller
     return redirect()->route('signup.thankyou');
 }
 
-        // Starter / Professional — redirect to Stripe Checkout
-        $priceId = $this->getPriceId($request->plan, $request->billing);
+        // Check for duplicate email before charging
+$exists = \Illuminate\Support\Facades\DB::connection('mysql')
+    ->table('tenants')
+    ->where('primary_email', $request->email)
+    ->whereIn('status', ['active', 'suspended'])
+    ->exists();
+
+if ($exists) {
+    return back()->withErrors([
+        'email' => 'An account with this email address already exists. Please log in or use a different email.'
+    ])->withInput();
+}
+
+// Starter / Professional — redirect to Stripe Checkout
+$priceId = $this->getPriceId($request->plan, $request->billing);
+        
 
         if (!$priceId) {
             return back()->withErrors(['plan' => 'Unable to find pricing for the selected plan. Please try again.']);
