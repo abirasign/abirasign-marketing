@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 use Stripe\Stripe;
 use Stripe\Webhook;
 use Stripe\Exception\SignatureVerificationException;
@@ -37,6 +39,13 @@ class StripeWebhookController extends Controller
     private function handleCheckoutCompleted($session)
     {
         $metadata = $session->metadata;
+
+        // Route quote payments separately
+        if (($metadata->type ?? '') === 'quote') {
+            $this->handleQuotePayment($session);
+            return;
+        }
+
         $email    = $session->customer_email;
         $name     = $metadata->contact_name  ?? 'Unknown';
         $plan     = $metadata->plan          ?? 'unknown';
@@ -45,7 +54,7 @@ class StripeWebhookController extends Controller
         $phone    = $metadata->phone         ?? '—';
         $type     = $metadata->practice_type ?? '—';
         $numUsers = (int) ($metadata->num_users ?? 1);
-        $hipaa = ($metadata->hipaa_required ?? '0') === '1';
+        $hipaa    = ($metadata->hipaa_required ?? '0') === '1';
 
         \Log::info('Stripe checkout.session.completed', [
             'email'        => $email,
@@ -53,27 +62,94 @@ class StripeWebhookController extends Controller
             'plan'         => $plan,
         ]);
 
-        // Send internal lead notification email
         $this->sendPaymentNotification(
             $name, $email, $plan, $billing, $practice, $phone, $type, $numUsers,
             $session->customer, $session->subscription
         );
 
-        // Trigger auto-provisioning for Starter and Professional
         if (in_array($plan, ['starter', 'professional'])) {
-    $this->triggerProvisioning([
-        'client_name'            => $practice,
-        'contact_name'           => $name,
-        'email'                  => $email,
-        'phone'                  => $phone,
-        'plan'                   => $plan,
-        'billing'                => $billing,
-        'num_users'              => $numUsers,
-        'hipaa_required'         => $hipaa,
-        'stripe_customer_id'     => $session->customer,
-        'stripe_subscription_id' => $session->subscription,
-    ]);
-}
+            $this->triggerProvisioning([
+                'client_name'            => $practice,
+                'contact_name'           => $name,
+                'email'                  => $email,
+                'phone'                  => $phone,
+                'plan'                   => $plan,
+                'billing'                => $billing,
+                'num_users'              => $numUsers,
+                'hipaa_required'         => $hipaa,
+                'stripe_customer_id'     => $session->customer,
+                'stripe_subscription_id' => $session->subscription,
+            ]);
+        }
+    }
+
+    private function handleQuotePayment($session): void
+    {
+        $metadata    = $session->metadata;
+        $quoteToken  = $metadata->quote_token  ?? null;
+        $quoteId     = $metadata->quote_id     ?? '—';
+        $clientName  = $metadata->client_name  ?? '—';
+        $contactName = $metadata->contact_name ?? '—';
+        $billingTerm = $metadata->billing_term ?? '—';
+        $hipaa       = ($metadata->hipaa ?? '0') === '1';
+
+        \Log::info('Quote payment completed', [
+            'quote_id'    => $quoteId,
+            'quote_token' => $quoteToken,
+            'amount'      => $session->amount_total,
+        ]);
+
+        // Mark quote as paid in master DB
+        if ($quoteToken) {
+            DB::table('quotes')
+                ->where('token', $quoteToken)
+                ->update(['payment_method' => 'stripe']);
+        }
+
+        // Notify Casey
+        $this->sendQuotePaymentNotification(
+            $quoteId, $clientName, $contactName, $billingTerm,
+            $session->amount_total, $hipaa, $session->customer
+        );
+    }
+
+    private function sendQuotePaymentNotification(
+        string $quoteId, string $clientName, string $contactName,
+        string $billingTerm, int $amountTotal, bool $hipaa, ?string $customerId
+    ): void {
+        $to      = config('mail.contact_to', 'hello@abirasign.com');
+        $amount  = '$' . number_format($amountTotal / 100, 2);
+        $term    = $billingTerm === 'triennial' ? 'Triennial (3 years)' : 'Annual (1 year)';
+        $hipaaNote = $hipaa
+            ? '<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-top:16px;font-size:13px;color:#92400e;"><strong>⚠ HIPAA required</strong> — BAA must be executed before provisioning.</div>'
+            : '<div style="background:#dcfce7;border:1px solid #86efac;border-radius:8px;padding:12px 16px;margin-top:16px;font-size:13px;color:#166534;"><strong>✓ No HIPAA</strong> — account can be provisioned immediately.</div>';
+
+        $html = "
+            <div style='font-family:sans-serif;max-width:600px;color:#111827;'>
+                <h2 style='color:#534AB7;margin-bottom:4px;'>💳 Enterprise quote payment received</h2>
+                <p style='color:#6B7280;font-size:13px;margin-top:0;'>Quote ID: {$quoteId}</p>
+                <table style='width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;'>
+                    <tr><td style='padding:8px 0;color:#6B7280;width:140px;'>Client</td><td style='padding:8px 0;font-weight:600;'>" . e($clientName) . "</td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Contact</td><td style='padding:8px 0;'>" . e($contactName) . "</td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Billing term</td><td style='padding:8px 0;'>" . e($term) . "</td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Amount paid</td><td style='padding:8px 0;font-weight:600;color:#534AB7;'>{$amount}</td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Stripe Customer</td><td style='padding:8px 0;font-size:12px;'>" . e($customerId ?? '—') . "</td></tr>
+                </table>
+                {$hipaaNote}
+                <p style='margin-top:20px;font-size:14px;'>Log in to the <a href='https://admin-dev.abirasign.com/quotes' style='color:#534AB7;'>admin portal</a> to provision their account.</p>
+                <p style='font-size:12px;color:#9CA3AF;margin-top:24px;'>© " . date('Y') . " BrightNet Technologies LLC, DBA AbiraSign</p>
+            </div>
+        ";
+
+        try {
+            Mail::html($html, function ($mail) use ($to, $quoteId, $clientName) {
+                $mail->to($to)
+                     ->subject('[AbiraSign] Enterprise payment received — ' . $quoteId . ' · ' . $clientName);
+            });
+            \Log::info('Quote payment notification sent', ['quote_id' => $quoteId]);
+        } catch (\Exception $e) {
+            \Log::error('Quote payment notification failed', ['error' => $e->getMessage()]);
+        }
     }
 
     private function triggerProvisioning(array $data): void

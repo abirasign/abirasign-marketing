@@ -1,4 +1,6 @@
 <?php
+
+use App\Http\Controllers\QuoteCheckoutController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ContactController;
@@ -28,3 +30,7 @@ Route::get('/signup/thank-you', [SignupController::class, 'thankYou'])->name('si
 
 // Stripe webhook
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])->name('stripe.webhook');
+
+// Quote checkout (enterprise)
+Route::get('/quote-checkout/{token}',         [QuoteCheckoutController::class, 'checkout'])->name('quote.checkout');
+Route::get('/quote-checkout/success',         [QuoteCheckoutController::class, 'success'])->name('quote.checkout.success');
