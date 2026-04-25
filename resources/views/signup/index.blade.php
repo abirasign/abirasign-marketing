@@ -152,18 +152,25 @@
                     @error('phone')<span class="form-error">{{ $message }}</span>@enderror
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="practice_type">Industry</label>
-                    <select id="practice_type" name="practice_type" class="form-select {{ $errors->has('practice_type') ? 'error' : '' }}">
-                        <option value="" disabled {{ old('practice_type') ? '' : 'selected' }}>Select your industry</option>
-                        <option value="healthcare" {{ old('practice_type') == 'healthcare' ? 'selected' : '' }}>Healthcare / Medical practice</option>
-                        <option value="legal" {{ old('practice_type') == 'legal' ? 'selected' : '' }}>Legal / Professional services</option>
-                        <option value="real_estate" {{ old('practice_type') == 'real_estate' ? 'selected' : '' }}>Real estate</option>
-                        <option value="hr" {{ old('practice_type') == 'hr' ? 'selected' : '' }}>HR / Onboarding</option>
-                        <option value="fitness" {{ old('practice_type') == 'fitness' ? 'selected' : '' }}>Fitness / Wellness</option>
-                        <option value="general" {{ old('practice_type') == 'general' ? 'selected' : '' }}>Other / General business</option>
-                    </select>
-                    @error('practice_type')<span class="form-error">{{ $message }}</span>@enderror
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="practice_type">Industry</label>
+                        <select id="practice_type" name="practice_type" class="form-select {{ $errors->has('practice_type') ? 'error' : '' }}">
+                            <option value="" disabled {{ old('practice_type') ? '' : 'selected' }}>Select industry</option>
+                            <option value="healthcare" {{ old('practice_type') == 'healthcare' ? 'selected' : '' }}>Healthcare / Medical</option>
+                            <option value="legal" {{ old('practice_type') == 'legal' ? 'selected' : '' }}>Legal / Professional</option>
+                            <option value="real_estate" {{ old('practice_type') == 'real_estate' ? 'selected' : '' }}>Real estate</option>
+                            <option value="hr" {{ old('practice_type') == 'hr' ? 'selected' : '' }}>HR / Onboarding</option>
+                            <option value="fitness" {{ old('practice_type') == 'fitness' ? 'selected' : '' }}>Fitness / Wellness</option>
+                            <option value="general" {{ old('practice_type') == 'general' ? 'selected' : '' }}>Other / General</option>
+                        </select>
+                        @error('practice_type')<span class="form-error">{{ $message }}</span>@enderror
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="num_users">Number of staff</label>
+                        <input type="number" id="num_users" name="num_users" class="form-input {{ $errors->has('num_users') ? 'error' : '' }}" value="{{ old('num_users', 1) }}" min="1" max="999" placeholder="1" oninput="updatePrices()">
+                        @error('num_users')<span class="form-error">{{ $message }}</span>@enderror
+                    </div>
                 </div>
 
                 <div class="form-divider"></div>
@@ -248,41 +255,44 @@
 
 @push('scripts')
 <script>
-// Pricing data
 const PRICES = {
-    starter:      { monthly: '$45.00/user/mo',  annual: '$40.50/user/mo' },
-    professional: { monthly: '$75.00/user/mo',  annual: '$67.50/user/mo' },
+    starter:      { monthly: 45.00, annual: 40.50 },
+    professional: { monthly: 75.00, annual: 67.50 },
 };
 
-// Read initial state from URL params (set by pricing page CTAs)
-const urlParams  = new URLSearchParams(window.location.search);
-const initPlan   = urlParams.get('plan')    || '{{ old("plan", $plan) }}';
+const urlParams   = new URLSearchParams(window.location.search);
+const initPlan    = urlParams.get('plan')    || '{{ old("plan", $plan) }}';
 const initBilling = urlParams.get('billing') || '{{ old("billing", $billing) }}';
 
-function onBillingChange(isAnnual) {
-    const term = isAnnual ? 'annual' : 'monthly';
-    document.getElementById('billingInput').value = term;
+function formatPrice(perUser, users) {
+    const total = (perUser * users).toFixed(2);
+    return users > 1
+        ? `$${total}/mo · $${perUser.toFixed(2)}/user`
+        : `$${perUser.toFixed(2)}/user/mo`;
+}
 
-    // Update price labels
-    document.getElementById('price-starter').textContent      = PRICES.starter[term];
-    document.getElementById('price-professional').textContent = PRICES.professional[term];
-
-    // Update toggle labels
+function updatePrices() {
+    const isAnnual = document.getElementById('billingToggle').checked;
+    const term     = isAnnual ? 'annual' : 'monthly';
+    const users    = Math.max(1, parseInt(document.getElementById('num_users').value) || 1);
+    document.getElementById('price-starter').textContent      = formatPrice(PRICES.starter[term], users);
+    document.getElementById('price-professional').textContent = formatPrice(PRICES.professional[term], users);
     document.getElementById('label-monthly').classList.toggle('active', !isAnnual);
     document.getElementById('label-annual').classList.toggle('active', isAnnual);
 }
 
+function onBillingChange(isAnnual) {
+    document.getElementById('billingInput').value = isAnnual ? 'annual' : 'monthly';
+    updatePrices();
+}
+
 function onPlanChange() {
     const selected = document.querySelector('input[name="plan"]:checked')?.value;
-
-    // Update selected styling
     document.querySelectorAll('.plan-option').forEach(el => el.classList.remove('selected'));
     document.querySelector(`input[name="plan"]:checked`)?.closest('.plan-option')?.classList.add('selected');
 
-    // HIPAA badge
-    const hipaaEl  = document.getElementById('hipaaStatus');
-    const hipaaPlans = ['professional', 'enterprise'];
-    if (hipaaPlans.includes(selected)) {
+    const hipaaEl = document.getElementById('hipaaStatus');
+    if (['professional', 'enterprise'].includes(selected)) {
         hipaaEl.className = 'hipaa-status included';
         hipaaEl.innerHTML = '<span>✓</span> HIPAA compliance + BAA included';
     } else {
@@ -290,29 +300,26 @@ function onPlanChange() {
         hipaaEl.innerHTML = '<span>⚠</span> No HIPAA — not for protected health information';
     }
 
-    // Submit button label
     const btn = document.getElementById('submitBtn');
-if (selected === 'enterprise') {
-    btn.textContent = 'Contact sales →';
-    btn.classList.add('enterprise-btn');
-    btn.type = 'button';
-    btn.onclick = () => window.location.href = '/contact?reason=sales';
-} else {
-    btn.textContent = 'Continue →';
-    btn.classList.remove('enterprise-btn');
-    btn.type = 'submit';
-    btn.onclick = null;
-}
+    if (selected === 'enterprise') {
+        btn.textContent = 'Contact sales →';
+        btn.classList.add('enterprise-btn');
+        btn.type = 'button';
+        btn.onclick = () => window.location.href = '/contact?reason=sales';
+    } else {
+        btn.textContent = 'Continue →';
+        btn.classList.remove('enterprise-btn');
+        btn.type = 'submit';
+        btn.onclick = null;
+    }
 }
 
-// Initialise on load
 document.addEventListener('DOMContentLoaded', () => {
-    // Set billing toggle
     const isAnnual = initBilling !== 'monthly';
     document.getElementById('billingToggle').checked = isAnnual;
-    onBillingChange(isAnnual);
+    document.getElementById('billingInput').value = isAnnual ? 'annual' : 'monthly';
+    updatePrices();
 
-    // Set plan radio
     const planRadio = document.querySelector(`input[name="plan"][value="${initPlan}"]`);
     if (planRadio) {
         planRadio.checked = true;

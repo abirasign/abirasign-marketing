@@ -26,6 +26,7 @@ class SignupController extends Controller
             'plan'          => 'required|in:payg,starter,professional,enterprise',
             'billing'       => 'required|in:monthly,annual',
             'practice_type' => 'required|in:healthcare,legal,real_estate,hr,fitness,general',
+            'num_users' => 'required|integer|min:1|max:9999',
         ]);
 
         // Store lead data in session for use after Stripe redirect
@@ -37,19 +38,21 @@ class SignupController extends Controller
             'signup_practice'     => $request->practice_name,
             'signup_phone'        => $request->phone,
             'signup_practice_type'=> $request->practice_type,
+            'signup_num_users' => $request->num_users,
         ]);
 
         // PAYG — no Stripe checkout, go straight to thank-you
         if ($request->plan === 'payg') {
-    $this->sendLeadNotification(
-        $request->contact_name,
-        $request->email,
-        $request->plan,
-        $request->billing,
-        $request->practice_name,
-        $request->phone,
-        $request->practice_type
-    );
+            $this->sendLeadNotification(
+            $request->contact_name,
+            $request->email,
+            $request->plan,
+            $request->billing,
+            $request->practice_name,
+            $request->phone,
+            $request->practice_type,
+            $request->num_users
+        );
     return redirect()->route('signup.thankyou');
 }
 
@@ -69,6 +72,7 @@ class SignupController extends Controller
     'contact_name'  => $request->contact_name,
     'phone'         => $request->phone,
     'practice_type' => $request->practice_type,
+    'num_users' => $request->num_users,
 ];
 
 $checkoutSession = StripeSession::create([
@@ -76,10 +80,10 @@ $checkoutSession = StripeSession::create([
     'payment_method_types' => ['card', 'us_bank_account'],
     'customer_email'       => $request->email,
     'metadata'             => $meta,
-    'line_items'           => [[
-        'price'    => $priceId,
-        'quantity' => 1,
-    ]],
+    'line_items' => [[
+    'price'    => $priceId,
+    'quantity' => (int) $request->num_users,
+]],
     'subscription_data'    => [
         'metadata' => $meta,
     ],
@@ -134,7 +138,7 @@ $checkoutSession = StripeSession::create([
 
         return $map[$plan][$billing] ?? null;
     }
-    private function sendLeadNotification(string $name, string $email, string $plan, string $billing, string $practice, string $phone, string $practiceType): void
+    private function sendLeadNotification(string $name, string $email, string $plan, string $billing, string $practice, string $phone, string $practiceType, int $numUsers = 1): void
 {
     $to        = config('mail.contact_to', 'hello@abirasign.com');
     $planLabel = match($plan) {
@@ -156,6 +160,7 @@ $checkoutSession = StripeSession::create([
                 <tr><td style='padding: 8px 0; color: #6B7280;'>Phone</td><td style='padding: 8px 0;'>" . e($phone) . "</td></tr>
                 <tr><td style='padding: 8px 0; color: #6B7280;'>Business</td><td style='padding: 8px 0;'>" . e($practice) . "</td></tr>
                 <tr><td style='padding: 8px 0; color: #6B7280;'>Industry</td><td style='padding: 8px 0;'>" . e(ucfirst(str_replace('_', ' ', $practiceType))) . "</td></tr>
+                <tr><td style='padding: 8px 0; color: #6B7280;'>Staff users</td><td style='padding: 8px 0;'>" . (int)$numUsers . "</td></tr>
                 <tr><td style='padding: 8px 0; color: #6B7280;'>Plan</td><td style='padding: 8px 0; font-weight: 600; color: #0E7490;'>" . e($planLabel) . "</td></tr>
                 <tr><td style='padding: 8px 0; color: #6B7280;'>Billing</td><td style='padding: 8px 0;'>" . e($billingLabel) . "</td></tr>
             </table>
