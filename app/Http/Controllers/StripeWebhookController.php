@@ -96,8 +96,9 @@ class StripeWebhookController extends Controller
     private function handleSubscriptionUpdated($subscription)
     {
         \Log::info('Stripe customer.subscription.updated', [
-            'subscription' => $subscription->id,
-            'status'       => $subscription->status,
+            'subscription'       => $subscription->id,
+            'status'             => $subscription->status,
+            'cancel_at'          => $subscription->cancel_at,
             'cancel_at_period_end' => $subscription->cancel_at_period_end,
         ]);
 
@@ -110,17 +111,29 @@ class StripeWebhookController extends Controller
             return;
         }
 
-        // Map Stripe status to our status
+        // Flexible billing uses cancel_at instead of cancel_at_period_end
+        $isCancelled = $subscription->cancel_at_period_end
+            || (!is_null($subscription->cancel_at) && $subscription->cancel_at > time());
+
         $status = match($subscription->status) {
-            'active'   => $subscription->cancel_at_period_end ? 'cancelled' : 'active',
-            'past_due' => 'active',   // keep access, let payment_failed handle alerting
+            'active'   => $isCancelled ? 'cancelled' : 'active',
+            'past_due' => 'active',
             'canceled' => 'cancelled',
             default    => $subscription->status,
         };
 
-        $nextBilling = $subscription->current_period_end
-            ? date('Y-m-d', $subscription->current_period_end)
-            : null;
+        // current_period_end is nested in items in flexible billing mode
+        $periodEnd = $subscription->current_period_end
+            ?? $subscription->items->data[0]->current_period_end
+            ?? null;
+
+        // If cancelled, use cancel_at as the access-through date
+        $nextBilling = null;
+        if ($isCancelled && $subscription->cancel_at) {
+            $nextBilling = date('Y-m-d', (int) $subscription->cancel_at);
+        } elseif ($periodEnd) {
+            $nextBilling = date('Y-m-d', (int) $periodEnd);
+        }
 
         DB::table('subscriptions')
             ->where('stripe_sub_id', $subscription->id)
@@ -134,6 +147,7 @@ class StripeWebhookController extends Controller
             'stripe_sub_id' => $subscription->id,
             'status'        => $status,
             'next_billing'  => $nextBilling,
+            'cancel_at'     => $subscription->cancel_at,
         ]);
     }
 
