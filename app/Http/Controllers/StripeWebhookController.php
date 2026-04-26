@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
@@ -27,10 +26,12 @@ class StripeWebhookController extends Controller
         }
 
         match ($event->type) {
-            'checkout.session.completed'    => $this->handleCheckoutCompleted($event->data->object),
-            'customer.subscription.created' => $this->handleSubscriptionCreated($event->data->object),
-            'invoice.payment_failed'        => $this->handlePaymentFailed($event->data->object),
-            default                         => null,
+            'checkout.session.completed'       => $this->handleCheckoutCompleted($event->data->object),
+            'customer.subscription.created'    => $this->handleSubscriptionCreated($event->data->object),
+            'customer.subscription.updated'    => $this->handleSubscriptionUpdated($event->data->object),
+            'customer.subscription.deleted'    => $this->handleSubscriptionDeleted($event->data->object),
+            'invoice.payment_failed'           => $this->handlePaymentFailed($event->data->object),
+            default                            => null,
         };
 
         return response('OK', 200);
@@ -40,7 +41,6 @@ class StripeWebhookController extends Controller
     {
         $metadata = $session->metadata;
 
-        // Route quote payments separately
         if (($metadata->type ?? '') === 'quote') {
             $this->handleQuotePayment($session);
             return;
@@ -83,6 +83,149 @@ class StripeWebhookController extends Controller
         }
     }
 
+    private function handleSubscriptionCreated($subscription)
+    {
+        \Log::info('Stripe customer.subscription.created', [
+            'customer'     => $subscription->customer,
+            'subscription' => $subscription->id,
+            'status'       => $subscription->status,
+        ]);
+        // Provisioning is triggered via checkout.session.completed — no action needed here
+    }
+
+    private function handleSubscriptionUpdated($subscription)
+    {
+        \Log::info('Stripe customer.subscription.updated', [
+            'subscription' => $subscription->id,
+            'status'       => $subscription->status,
+            'cancel_at_period_end' => $subscription->cancel_at_period_end,
+        ]);
+
+        $row = DB::table('subscriptions')
+            ->where('stripe_sub_id', $subscription->id)
+            ->first();
+
+        if (!$row) {
+            \Log::warning('subscription.updated — no matching subscription in DB', ['stripe_sub_id' => $subscription->id]);
+            return;
+        }
+
+        // Map Stripe status to our status
+        $status = match($subscription->status) {
+            'active'   => $subscription->cancel_at_period_end ? 'cancelled' : 'active',
+            'past_due' => 'active',   // keep access, let payment_failed handle alerting
+            'canceled' => 'cancelled',
+            default    => $subscription->status,
+        };
+
+        $nextBilling = $subscription->current_period_end
+            ? date('Y-m-d', $subscription->current_period_end)
+            : null;
+
+        DB::table('subscriptions')
+            ->where('stripe_sub_id', $subscription->id)
+            ->update([
+                'status'       => $status,
+                'next_billing' => $nextBilling,
+                'updated_at'   => now(),
+            ]);
+
+        \Log::info('Subscription updated in DB', [
+            'stripe_sub_id' => $subscription->id,
+            'status'        => $status,
+            'next_billing'  => $nextBilling,
+        ]);
+    }
+
+    private function handleSubscriptionDeleted($subscription)
+    {
+        \Log::info('Stripe customer.subscription.deleted', [
+            'subscription' => $subscription->id,
+            'customer'     => $subscription->customer,
+        ]);
+
+        $row = DB::table('subscriptions')
+            ->where('stripe_sub_id', $subscription->id)
+            ->first();
+
+        if (!$row) {
+            \Log::warning('subscription.deleted — no matching subscription in DB', ['stripe_sub_id' => $subscription->id]);
+            return;
+        }
+
+        // Cancel subscription and deactivate tenant
+        DB::table('subscriptions')
+            ->where('stripe_sub_id', $subscription->id)
+            ->update(['status' => 'cancelled', 'updated_at' => now()]);
+
+        DB::table('tenants')
+            ->where('tenant_id', $row->tenant_id)
+            ->update(['status' => 'inactive', 'updated_at' => now()]);
+
+        \Log::info('Subscription cancelled and tenant deactivated', [
+            'tenant_id'     => $row->tenant_id,
+            'stripe_sub_id' => $subscription->id,
+        ]);
+    }
+
+private function handlePaymentFailed($invoice)
+    {
+        \Log::warning('Stripe invoice.payment_failed', [
+            'customer'      => $invoice->customer,
+            'amount_due'    => $invoice->amount_due,
+            'attempt_count' => $invoice->attempt_count,
+        ]);
+
+        // Look up tenant by stripe_customer_id
+        $subscription = DB::table('subscriptions')
+            ->where('stripe_customer_id', $invoice->customer)
+            ->where('status', 'active')
+            ->first();
+
+        if (!$subscription) {
+            \Log::warning('payment_failed — no active subscription found for customer', ['customer' => $invoice->customer]);
+            return;
+        }
+
+        $tenant = DB::table('tenants')
+            ->where('tenant_id', $subscription->tenant_id)
+            ->first();
+
+        if (!$tenant) return;
+
+        $amount       = '$' . number_format($invoice->amount_due / 100, 2);
+        $attemptCount = $invoice->attempt_count ?? 1;
+        $to           = $tenant->primary_email;
+        $name         = $tenant->primary_contact ?? $tenant->client_name;
+
+        $html = "
+            <div style='font-family:sans-serif;max-width:600px;color:#111827;'>
+                <h2 style='color:#dc2626;margin-bottom:4px;'>⚠ Payment failed</h2>
+                <p style='color:#6B7280;font-size:13px;margin-top:0;'>Attempt {$attemptCount}</p>
+                <p style='font-size:14px;'>Hi " . e($name) . ",</p>
+                <p style='font-size:14px;'>We were unable to process your payment of <strong>{$amount}</strong> for your AbiraSign subscription.</p>
+                <p style='font-size:14px;'>Please update your payment method to avoid any interruption to your service.</p>
+                <p style='margin-top:20px;'>
+                    <a href='" . env('APP_LOGIN_URL', 'https://dev.abirasign.com/login') . "'
+                       style='background:#534AB7;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600;'>
+                        Update payment method
+                    </a>
+                </p>
+                <p style='font-size:12px;color:#9CA3AF;margin-top:24px;'>© " . date('Y') . " BrightNet Technologies LLC, DBA AbiraSign</p>
+            </div>
+        ";
+
+        try {
+            Mail::html($html, function ($mail) use ($to, $name) {
+                $mail->to($to, $name)
+                     ->subject('[AbiraSign] Payment failed — action required');
+            });
+            \Log::info('Payment failed notification sent', ['to' => $to]);
+        } catch (\Exception $e) {
+            \Log::error('Payment failed notification email error', ['error' => $e->getMessage()]);
+        }
+    }
+
     private function handleQuotePayment($session): void
     {
         $metadata    = $session->metadata;
@@ -99,18 +242,61 @@ class StripeWebhookController extends Controller
             'amount'      => $session->amount_total,
         ]);
 
-        // Mark quote as paid in master DB
         if ($quoteToken) {
             DB::table('quotes')
                 ->where('token', $quoteToken)
                 ->update(['payment_method' => 'stripe']);
         }
 
-        // Notify Casey
         $this->sendQuotePaymentNotification(
             $quoteId, $clientName, $contactName, $billingTerm,
             $session->amount_total, $hipaa, $session->customer
         );
+    }
+
+    private function triggerProvisioning(array $data): void
+    {
+        $url   = env('ABIRASIGN_APP_URL', 'https://dev.abirasign.com') . '/api/internal/provision';
+        $token = env('INTERNAL_API_TOKEN');
+
+        try {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => json_encode($data),
+                CURLOPT_HTTPHEADER     => [
+                    'Content-Type: application/json',
+                    'X-Internal-Token: ' . $token,
+                    'Accept: application/json',
+                ],
+                CURLOPT_TIMEOUT => 30,
+            ]);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            $decoded = json_decode($response, true);
+
+            if ($httpCode === 201) {
+                \Log::info('Auto-provisioning triggered successfully', [
+                    'email'     => $data['email'],
+                    'tenant_id' => $decoded['tenant_id'] ?? null,
+                ]);
+            } else {
+                \Log::error('Auto-provisioning failed', [
+                    'email'     => $data['email'],
+                    'http_code' => $httpCode,
+                    'response'  => $response,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Auto-provisioning exception', [
+                'email' => $data['email'],
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function sendQuotePaymentNotification(
@@ -146,55 +332,8 @@ class StripeWebhookController extends Controller
                 $mail->to($to)
                      ->subject('[AbiraSign] Enterprise payment received — ' . $quoteId . ' · ' . $clientName);
             });
-            \Log::info('Quote payment notification sent', ['quote_id' => $quoteId]);
         } catch (\Exception $e) {
             \Log::error('Quote payment notification failed', ['error' => $e->getMessage()]);
-        }
-    }
-
-    private function triggerProvisioning(array $data): void
-    {
-        $url   = env('ABIRASIGN_APP_URL', 'https://dev.abirasign.com') . '/api/internal/provision';
-        $token = env('INTERNAL_API_TOKEN');
-
-        try {
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST           => true,
-                CURLOPT_POSTFIELDS     => json_encode($data),
-                CURLOPT_HTTPHEADER     => [
-                    'Content-Type: application/json',
-                    'X-Internal-Token: ' . $token,
-                    'Accept: application/json',
-                ],
-                CURLOPT_TIMEOUT        => 30,
-            ]);
-
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-
-            $decoded = json_decode($response, true);
-
-            if ($httpCode === 201) {
-                \Log::info('Auto-provisioning triggered successfully', [
-                    'email'     => $data['email'],
-                    'tenant_id' => $decoded['tenant_id'] ?? null,
-                    'setup_url' => $decoded['setup_url'] ?? null,
-                ]);
-            } else {
-                \Log::error('Auto-provisioning failed', [
-                    'email'     => $data['email'],
-                    'http_code' => $httpCode,
-                    'response'  => $response,
-                ]);
-            }
-        } catch (\Exception $e) {
-            \Log::error('Auto-provisioning exception', [
-                'email' => $data['email'],
-                'error' => $e->getMessage(),
-            ]);
         }
     }
 
@@ -217,12 +356,12 @@ class StripeWebhookController extends Controller
                 <p style='color: #6B7280; font-size: 13px; margin-top: 0;'>Stripe Checkout completed · auto-provisioning triggered</p>
                 <table style='width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;'>
                     <tr><td style='padding: 8px 0; color: #6B7280; width: 140px;'>Name</td><td style='padding: 8px 0; font-weight: 600;'>" . e($name) . "</td></tr>
-                    <tr><td style='padding: 8px 0; color: #6B7280;'>Email</td><td style='padding: 8px 0;'><a href='mailto:" . e($email) . "' style='color: #0E7490;'>" . e($email) . "</a></td></tr>
+                    <tr><td style='padding: 8px 0; color: #6B7280;'>Email</td><td style='padding: 8px 0;'>" . e($email) . "</td></tr>
                     <tr><td style='padding: 8px 0; color: #6B7280;'>Phone</td><td style='padding: 8px 0;'>" . e($phone) . "</td></tr>
                     <tr><td style='padding: 8px 0; color: #6B7280;'>Business</td><td style='padding: 8px 0;'>" . e($practice) . "</td></tr>
                     <tr><td style='padding: 8px 0; color: #6B7280;'>Industry</td><td style='padding: 8px 0;'>" . e(ucfirst(str_replace('_', ' ', $type))) . "</td></tr>
                     <tr><td style='padding: 8px 0; color: #6B7280;'>Staff users</td><td style='padding: 8px 0;'>" . $numUsers . "</td></tr>
-                    <tr><td style='padding: 8px 0; color: #6B7280;'>Plan</td><td style='padding: 8px 0; font-weight: 600; color: #0E7490;'>" . e($planLabel) . "</td></tr>
+                    <tr><td style='padding: 8px 0; color: #6B7280;'>Plan</td><td style='padding: 8px 0; font-weight: 600;'>" . e($planLabel) . "</td></tr>
                     <tr><td style='padding: 8px 0; color: #6B7280;'>Billing</td><td style='padding: 8px 0;'>" . e($billingLabel) . "</td></tr>
                     <tr><td style='padding: 8px 0; color: #6B7280;'>Stripe Customer</td><td style='padding: 8px 0; font-size: 12px;'>" . e($customerId ?? '—') . "</td></tr>
                     <tr><td style='padding: 8px 0; color: #6B7280;'>Subscription</td><td style='padding: 8px 0; font-size: 12px;'>" . e($subscriptionId ?? '—') . "</td></tr>
@@ -240,28 +379,8 @@ class StripeWebhookController extends Controller
                      ->replyTo($email, $name)
                      ->subject('[AbiraSign] Payment confirmed — ' . $planLabel . ' · ' . $name);
             });
-            \Log::info('Signup payment notification sent', ['email' => $email, 'plan' => $plan]);
         } catch (\Exception $e) {
             \Log::error('Signup payment notification failed', ['error' => $e->getMessage()]);
         }
-    }
-
-    private function handleSubscriptionCreated($subscription)
-    {
-        \Log::info('Stripe customer.subscription.created', [
-            'customer'     => $subscription->customer,
-            'subscription' => $subscription->id,
-            'status'       => $subscription->status,
-        ]);
-    }
-
-    private function handlePaymentFailed($invoice)
-    {
-        \Log::warning('Stripe invoice.payment_failed', [
-            'customer'      => $invoice->customer,
-            'amount_due'    => $invoice->amount_due,
-            'attempt_count' => $invoice->attempt_count,
-        ]);
-        // TODO: Send payment failure notification email to customer
     }
 }
