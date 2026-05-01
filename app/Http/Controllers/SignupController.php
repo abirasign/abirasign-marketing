@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
+use Stripe\SetupIntent;
 
 class SignupController extends Controller
 {
@@ -15,7 +16,6 @@ class SignupController extends Controller
                    ? $request->query('plan') : 'payg';
         $billing = $request->query('billing') === 'monthly' ? 'monthly' : 'annual';
 
-        // Fetch current active policy versions for the checkbox label
         $today      = now()->toDateString();
         $currentTos = DB::table('policy_versions')
             ->where('type', 'tos')
@@ -34,21 +34,20 @@ class SignupController extends Controller
     public function submit(Request $request)
     {
         $request->validate([
-            'practice_name'  => 'required|string|max:255',
-            'contact_name'   => 'required|string|max:255',
-            'email'          => 'required|email|max:255',
-            'phone'          => 'required|string|max:20',
-            'plan'           => 'required|in:payg,starter,professional,enterprise',
-            'billing'        => 'required|in:monthly,annual',
-            'practice_type'  => 'required|in:healthcare,legal,real_estate,hr,fitness,general',
-            'num_users'      => 'required|integer|min:1|max:9999',
-            'hipaa_required' => 'sometimes|boolean',
+            'practice_name'   => 'required|string|max:255',
+            'contact_name'    => 'required|string|max:255',
+            'email'           => 'required|email|max:255',
+            'phone'           => 'required|string|max:20',
+            'plan'            => 'required|in:payg,starter,professional,enterprise',
+            'billing'         => 'required|in:monthly,annual',
+            'practice_type'   => 'required|in:healthcare,legal,real_estate,hr,fitness,general',
+            'num_users'       => 'required|integer|min:1|max:9999',
+            'hipaa_required'  => 'sometimes|boolean',
             'accept_policies' => 'accepted',
         ]);
 
         $email = strtolower(trim($request->email));
 
-        // Store lead data in session
         session([
             'signup_name'          => $request->contact_name,
             'signup_email'         => $email,
@@ -61,36 +60,20 @@ class SignupController extends Controller
             'signup_hipaa'         => $request->boolean('hipaa_required'),
         ]);
 
-        // Write policy acknowledgement at signup time (tenant_id = NULL)
         $this->writePolicyAck($email, $request->ip());
 
-        // PAYG — no Stripe, go to thank-you
-        if ($request->plan === 'payg') {
-            $this->sendLeadNotification(
-                $request->contact_name, $email, $request->plan,
-                $request->billing, $request->practice_name,
-                $request->phone, $request->practice_type, $request->num_users
-            );
-            return redirect()->route('signup.thankyou');
-        }
+        // Duplicate email check for all paid plans
+        if ($request->plan !== 'payg') {
+            $exists = DB::table('tenants')
+                ->where('primary_email', $email)
+                ->whereIn('status', ['active', 'suspended'])
+                ->exists();
 
-        // Duplicate email check before charging
-        $exists = DB::table('tenants')
-            ->where('primary_email', $email)
-            ->whereIn('status', ['active', 'suspended'])
-            ->exists();
-
-        if ($exists) {
-            return back()->withErrors([
-                'email' => 'An account with this email address already exists. Please log in or use a different email.'
-            ])->withInput();
-        }
-
-        // Starter / Professional — redirect to Stripe Checkout
-        $priceId = $this->getPriceId($request->plan, $request->billing);
-
-        if (!$priceId) {
-            return back()->withErrors(['plan' => 'Unable to find pricing for the selected plan. Please try again.']);
+            if ($exists) {
+                return back()->withErrors([
+                    'email' => 'An account with this email address already exists. Please log in or use a different email.'
+                ])->withInput();
+            }
         }
 
         Stripe::setApiKey(env('STRIPE_SECRET'));
@@ -106,64 +89,58 @@ class SignupController extends Controller
             'hipaa_required' => $request->boolean('hipaa_required') ? '1' : '0',
         ];
 
+        // PAYG — Setup Intent to save card, no immediate charge
+        if ($request->plan === 'payg') {
+            // Duplicate email check for PAYG too
+            $exists = DB::table('tenants')
+                ->where('primary_email', $email)
+                ->whereIn('status', ['active', 'suspended'])
+                ->exists();
+
+            if ($exists) {
+                return back()->withErrors([
+                    'email' => 'An account with this email address already exists. Please log in or use a different email.'
+                ])->withInput();
+            }
+
+            $checkoutSession = StripeSession::create([
+                'mode'                 => 'setup',
+                'payment_method_types' => ['card'],
+                'customer_email'       => $email,
+                'metadata'             => $meta,
+                'success_url'          => route('signup.success') . '?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url'           => route('signup') . '?plan=payg',
+            ]);
+
+            return redirect($checkoutSession->url);
+        }
+
+        // Starter / Professional — subscription with 14-day trial
+        $priceId = $this->getPriceId($request->plan, $request->billing);
+
+        if (!$priceId) {
+            return back()->withErrors(['plan' => 'Unable to find pricing for the selected plan. Please try again.']);
+        }
+
         $checkoutSession = StripeSession::create([
             'mode'                 => 'subscription',
-            'payment_method_types' => ['card', 'us_bank_account'],
+            'payment_method_types' => ['card'],
             'customer_email'       => $email,
             'metadata'             => $meta,
             'line_items'           => [[
                 'price'    => $priceId,
                 'quantity' => (int) $request->num_users,
             ]],
-            'subscription_data'    => ['metadata' => $meta],
-            'success_url'          => route('signup.success') . '?session_id={CHECKOUT_SESSION_ID}',
-            'cancel_url'           => route('signup') . '?plan=' . $request->plan . '&billing=' . $request->billing,
-            'allow_promotion_codes'=> true,
+            'subscription_data' => [
+                'trial_period_days' => 14,
+                'metadata'          => $meta,
+            ],
+            'success_url'           => route('signup.success') . '?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url'            => route('signup') . '?plan=' . $request->plan . '&billing=' . $request->billing,
+            'allow_promotion_codes' => true,
         ]);
 
         return redirect($checkoutSession->url);
-    }
-
-// ── Write policy ack at signup time ───────────────────────────────────
-    private function writePolicyAck(string $email, string $ip): void
-    {
-        $today = now()->toDateString();
-
-        $currentTos = DB::table('policy_versions')
-            ->where('type', 'tos')
-            ->where('effective_date', '<=', $today)
-            ->orderByDesc('effective_date')->orderByDesc('id')
-            ->first();
-
-        $currentPp = DB::table('policy_versions')
-            ->where('type', 'pp')
-            ->where('effective_date', '<=', $today)
-            ->orderByDesc('effective_date')->orderByDesc('id')
-            ->first();
-
-        if (!$currentTos && !$currentPp) return;
-
-        // Prevent duplicate signup acks for same email + same versions
-        $exists = DB::table('policy_acknowledgements')
-            ->where('email', $email)
-            ->whereNull('tenant_id')
-            ->where('tos_version_id', $currentTos->id ?? null)
-            ->where('pp_version_id',  $currentPp->id  ?? null)
-            ->exists();
-
-        if ($exists) return;
-
-        $now = now();
-        DB::table('policy_acknowledgements')->insert([
-            'email'           => $email,
-            'tenant_id'       => null,
-            'tos_version_id'  => $currentTos->id ?? null,
-            'pp_version_id'   => $currentPp->id  ?? null,
-            'ip_address'      => $ip,
-            'acknowledged_at' => $now,
-            'created_at'      => $now,
-            'updated_at'      => $now,
-        ]);
     }
 
     public function success(Request $request)
@@ -177,9 +154,33 @@ class SignupController extends Controller
         Stripe::setApiKey(env('STRIPE_SECRET'));
 
         try {
-            $stripeSession = StripeSession::retrieve($sessionId);
+            $stripeSession = StripeSession::retrieve([
+                'id'     => $sessionId,
+                'expand' => ['setup_intent', 'subscription'],
+            ]);
+
             session(['signup_stripe_session' => $sessionId]);
+
+            // For PAYG: store setup intent details in session for webhook processing
+            if ($stripeSession->mode === 'setup') {
+                session([
+                    'signup_stripe_customer'      => $stripeSession->customer,
+                    'signup_stripe_setup_intent'  => $stripeSession->setup_intent?->id,
+                    'signup_stripe_payment_method'=> $stripeSession->setup_intent?->payment_method,
+                ]);
+            }
+
+            // For Starter/Pro: store subscription info
+            if ($stripeSession->mode === 'subscription') {
+                session([
+                    'signup_stripe_customer'     => $stripeSession->customer,
+                    'signup_stripe_subscription' => $stripeSession->subscription?->id,
+                    'signup_trial_end'           => $stripeSession->subscription?->trial_end,
+                ]);
+            }
+
         } catch (\Exception $e) {
+            \Log::error('Stripe session retrieval failed', ['error' => $e->getMessage()]);
             return redirect()->route('signup');
         }
 
@@ -210,6 +211,46 @@ class SignupController extends Controller
         return $map[$plan][$billing] ?? null;
     }
 
+    private function writePolicyAck(string $email, string $ip): void
+    {
+        $today = now()->toDateString();
+
+        $currentTos = DB::table('policy_versions')
+            ->where('type', 'tos')
+            ->where('effective_date', '<=', $today)
+            ->orderByDesc('effective_date')->orderByDesc('id')
+            ->first();
+
+        $currentPp = DB::table('policy_versions')
+            ->where('type', 'pp')
+            ->where('effective_date', '<=', $today)
+            ->orderByDesc('effective_date')->orderByDesc('id')
+            ->first();
+
+        if (!$currentTos && !$currentPp) return;
+
+        $exists = DB::table('policy_acknowledgements')
+            ->where('email', $email)
+            ->whereNull('tenant_id')
+            ->where('tos_version_id', $currentTos->id ?? null)
+            ->where('pp_version_id',  $currentPp->id  ?? null)
+            ->exists();
+
+        if ($exists) return;
+
+        $now = now();
+        DB::table('policy_acknowledgements')->insert([
+            'email'           => $email,
+            'tenant_id'       => null,
+            'tos_version_id'  => $currentTos->id ?? null,
+            'pp_version_id'   => $currentPp->id  ?? null,
+            'ip_address'      => $ip,
+            'acknowledged_at' => $now,
+            'created_at'      => $now,
+            'updated_at'      => $now,
+        ]);
+    }
+
     private function sendLeadNotification(string $name, string $email, string $plan, string $billing, string $practice, string $phone, string $practiceType, int $numUsers = 1): void
     {
         $to        = config('mail.contact_to', 'hello@abirasign.com');
@@ -223,20 +264,19 @@ class SignupController extends Controller
         $billingLabel = $billing === 'annual' ? 'Annual (10% discount)' : 'Monthly';
 
         $html = "
-            <div style='font-family: sans-serif; max-width: 600px; color: #111827;'>
-                <h2 style='color: #0E7490; margin-bottom: 4px;'>New signup — {$planLabel}</h2>
-                <p style='color: #6B7280; font-size: 13px; margin-top: 0;'>Submitted via abirasign.com/signup</p>
-                <table style='width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;'>
-                    <tr><td style='padding: 8px 0; color: #6B7280; width: 140px;'>Name</td><td style='padding: 8px 0; font-weight: 600;'>" . e($name) . "</td></tr>
-                    <tr><td style='padding: 8px 0; color: #6B7280;'>Email</td><td style='padding: 8px 0;'><a href='mailto:" . e($email) . "' style='color: #0E7490;'>" . e($email) . "</a></td></tr>
-                    <tr><td style='padding: 8px 0; color: #6B7280;'>Phone</td><td style='padding: 8px 0;'>" . e($phone) . "</td></tr>
-                    <tr><td style='padding: 8px 0; color: #6B7280;'>Business</td><td style='padding: 8px 0;'>" . e($practice) . "</td></tr>
-                    <tr><td style='padding: 8px 0; color: #6B7280;'>Industry</td><td style='padding: 8px 0;'>" . e(ucfirst(str_replace('_', ' ', $practiceType))) . "</td></tr>
-                    <tr><td style='padding: 8px 0; color: #6B7280;'>Staff users</td><td style='padding: 8px 0;'>" . (int)$numUsers . "</td></tr>
-                    <tr><td style='padding: 8px 0; color: #6B7280;'>Plan</td><td style='padding: 8px 0; font-weight: 600; color: #0E7490;'>" . e($planLabel) . "</td></tr>
-                    <tr><td style='padding: 8px 0; color: #6B7280;'>Billing</td><td style='padding: 8px 0;'>" . e($billingLabel) . "</td></tr>
+            <div style='font-family:sans-serif;max-width:600px;color:#111827;'>
+                <h2 style='color:#0E7490;margin-bottom:4px;'>New signup — {$planLabel}</h2>
+                <p style='color:#6B7280;font-size:13px;margin-top:0;'>Submitted via abirasign.com/signup</p>
+                <table style='width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;'>
+                    <tr><td style='padding:8px 0;color:#6B7280;width:140px;'>Name</td><td style='padding:8px 0;font-weight:600;'>" . e($name) . "</td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Email</td><td style='padding:8px 0;'><a href='mailto:" . e($email) . "' style='color:#0E7490;'>" . e($email) . "</a></td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Phone</td><td style='padding:8px 0;'>" . e($phone) . "</td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Business</td><td style='padding:8px 0;'>" . e($practice) . "</td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Industry</td><td style='padding:8px 0;'>" . e(ucfirst(str_replace('_', ' ', $practiceType))) . "</td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Staff users</td><td style='padding:8px 0;'>" . (int)$numUsers . "</td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Plan</td><td style='padding:8px 0;font-weight:600;color:#0E7490;'>" . e($planLabel) . "</td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Billing</td><td style='padding:8px 0;'>" . e($billingLabel) . "</td></tr>
                 </table>
-                <p style='font-size: 12px; color: #9CA3AF; margin-top: 24px;'>Reply directly to this email to contact " . e($name) . ".</p>
             </div>
         ";
 
