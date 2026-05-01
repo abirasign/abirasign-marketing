@@ -48,11 +48,13 @@ class SignupController extends Controller
 
         $email = strtolower(trim($request->email));
 
+        $effectiveBilling = in_array($request->plan, ['starter', 'professional']) ? 'monthly' : $request->billing;
+
         session([
             'signup_name'          => $request->contact_name,
             'signup_email'         => $email,
             'signup_plan'          => $request->plan,
-            'signup_billing'       => $request->billing,
+            'signup_billing'       => $effectiveBilling,
             'signup_practice'      => $request->practice_name,
             'signup_phone'         => $request->phone,
             'signup_practice_type' => $request->practice_type,
@@ -116,7 +118,9 @@ class SignupController extends Controller
         }
 
         // Starter / Professional — subscription with 14-day trial
-        $priceId = $this->getPriceId($request->plan, $request->billing);
+        // Trials always start on monthly billing to prevent accidental annual charges
+        $trialBilling = 'monthly';
+        $priceId = $this->getPriceId($request->plan, $trialBilling);
 
         if (!$priceId) {
             return back()->withErrors(['plan' => 'Unable to find pricing for the selected plan. Please try again.']);
@@ -133,7 +137,7 @@ class SignupController extends Controller
             ]],
             'subscription_data' => [
                 'trial_period_days' => 14,
-                'metadata'          => $meta,
+                'metadata'          => array_merge($meta, ['billing' => 'monthly']),
             ],
             'success_url'           => route('signup.success') . '?session_id={CHECKOUT_SESSION_ID}',
             'cancel_url'            => route('signup') . '?plan=' . $request->plan . '&billing=' . $request->billing,

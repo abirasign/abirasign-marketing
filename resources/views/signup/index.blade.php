@@ -257,6 +257,9 @@
                 <div id="trialNotice" style="display:none;margin-top:12px;padding:12px 14px;background:#ede9fe;border:1px solid #c4b5fd;border-radius:var(--radius-md);font-size:13px;color:#5b21b6;">
                     🎉 <strong>14-day free trial included.</strong> No charge until your trial ends. Card required to start — cancel anytime before trial ends and you won't be billed.
                     HIPAA compliance and BAA are not available during the trial period.
+                    <div style="margin-top:8px;padding-top:8px;border-top:1px solid #c4b5fd;font-size:12px;">
+                        📅 Trials start on <strong>monthly billing</strong>. You can switch to annual (and save 10%) after your trial ends from your billing page.
+                    </div>
                 </div>
 
                 {{-- PAYG notice --}}
@@ -368,7 +371,7 @@ function onPlanChange() {
         hipaaToggle.checked              = false;
         paygNotice.style.display         = 'block';
     } else if (selected === 'professional') {
-        if (billingToggleWrap) billingToggleWrap.style.display = 'flex';
+        if (billingToggleWrap) billingToggleWrap.style.display = 'none';
         hipaaSection.style.display = 'block';
         hipaaToggleSection.style.display = 'block';
         hipaaStatus.style.display = 'none';
@@ -383,7 +386,7 @@ function onPlanChange() {
         hipaaStatus.innerHTML            = '<span>✓</span> HIPAA compliance + BAA included';
     } else {
         // Starter
-        if (billingToggleWrap) billingToggleWrap.style.display = 'flex';
+        if (billingToggleWrap) billingToggleWrap.style.display = 'none';
         hipaaSection.style.display       = 'block';
         hipaaToggleSection.style.display = 'none';
         hipaaStatus.style.display        = 'flex';
