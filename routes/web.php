@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\PolicyController;
 
 Route::get('/robots.txt', function () {
     $content = app()->environment('production')
@@ -16,8 +17,12 @@ Route::get('/robots.txt', function () {
 // Marketing pages
 Route::get('/', fn() => view('home'))->name('home');
 Route::get('/pricing', fn() => view('pricing'))->name('pricing');
-Route::get('/terms', fn() => view('legal.terms'))->name('terms');
-Route::get('/privacy', fn() => view('legal.privacy'))->name('privacy');
+Route::get('/terms',           [PolicyController::class, 'terms'])->name('terms');
+Route::get('/terms/archive',   [PolicyController::class, 'termsArchive'])->name('terms.archive');
+Route::get('/terms/v/{version}', [PolicyController::class, 'termsVersion'])->name('terms.version');
+Route::get('/privacy',           [PolicyController::class, 'privacy'])->name('privacy');
+Route::get('/privacy/archive',   [PolicyController::class, 'privacyArchive'])->name('privacy.archive');
+Route::get('/privacy/v/{version}', [PolicyController::class, 'privacyVersion'])->name('privacy.version');
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
 Route::get('/contact/thank-you', [ContactController::class, 'thankYou'])->name('contact.thankyou');

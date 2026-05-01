@@ -257,10 +257,26 @@
 
                 <button type="submit" class="submit-btn" id="submitBtn">Continue →</button>
 
-                <p class="form-footer">
-                    By continuing you agree to our <a href="{{ route('terms') }}">Terms of Service</a> and <a href="{{ route('privacy') }}">Privacy Policy</a>.<br>
-                    Your information is never sold or shared with third parties.
-                </p>
+                {{-- Explicit TOS + PP acceptance checkbox --}}
+                <div style="margin-top:16px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg-alt);">
+                    <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;">
+                        <input type="checkbox" name="accept_policies" id="accept_policies" value="1"
+                               style="width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--teal);cursor:pointer;"
+                               {{ old('accept_policies') ? 'checked' : '' }}>
+                        <span style="font-size:13px;color:var(--text-secondary);line-height:1.55;">
+                            I have read and agree to the
+                            <a href="{{ route('terms') }}" target="_blank" style="color:var(--teal);">Terms of Service</a>
+                            @if($currentTos) <span style="color:var(--text-muted);">(v{{ $currentTos->version }})</span> @endif
+                            and
+                            <a href="{{ route('privacy') }}" target="_blank" style="color:var(--teal);">Privacy Policy</a>
+                            @if($currentPp) <span style="color:var(--text-muted);">(v{{ $currentPp->version }})</span> @endif.
+                            Your information is never sold or shared with third parties.
+                        </span>
+                    </label>
+                    @error('accept_policies')
+                        <p style="font-size:12px;color:#EF4444;margin:8px 0 0 28px;">You must accept the Terms of Service and Privacy Policy to continue.</p>
+                    @enderror
+                </div>
             </form>
         </div>
 
