@@ -253,6 +253,19 @@
 </div>
                 </div>
 
+                {{-- Trial notice (shown for Starter/Pro) --}}
+                <div id="trialNotice" style="display:none;margin-top:12px;padding:12px 14px;background:#ede9fe;border:1px solid #c4b5fd;border-radius:var(--radius-md);font-size:13px;color:#5b21b6;">
+                    🎉 <strong>14-day free trial included.</strong> No charge until your trial ends. Card required to start — cancel anytime before trial ends and you won't be billed.
+                    HIPAA compliance and BAA are not available during the trial period.
+                </div>
+
+                {{-- PAYG notice --}}
+                <div id="paygNotice" style="display:none;margin-top:12px;padding:12px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius-md);font-size:13px;color:#0c4a6e;">
+                    💳 <strong>Pay As You Go:</strong> $10.00 charged per envelope sent. No monthly fee. A card is required at signup to enable sending.
+                    <strong>PAYG accounts cannot be used to process protected health information (PHI) — ever.</strong>
+                    HIPAA compliance is not available on this plan.
+                </div>
+
                 <div class="form-divider"></div>
 
                 <button type="submit" class="submit-btn" id="submitBtn">Continue →</button>
@@ -335,25 +348,49 @@ function onPlanChange() {
     document.querySelectorAll('.plan-option').forEach(el => el.classList.remove('selected'));
     document.querySelector(`input[name="plan"]:checked`)?.closest('.plan-option')?.classList.add('selected');
 
+    const hipaaSection       = document.getElementById('hipaaSection');
     const hipaaStatus        = document.getElementById('hipaaStatus');
     const hipaaToggleSection = document.getElementById('hipaaToggleSection');
     const hipaaToggle        = document.getElementById('hipaaToggle');
+    const billingToggleWrap  = document.querySelector('.billing-toggle-wrap');
+    const trialNotice        = document.getElementById('trialNotice');
+    const paygNotice         = document.getElementById('paygNotice');
 
-    if (selected === 'professional') {
+    // Reset notices
+    trialNotice.style.display = 'none';
+    paygNotice.style.display  = 'none';
+
+    if (selected === 'payg') {
+        // PAYG: hide billing toggle, hide HIPAA entirely, show PAYG notice
+        if (billingToggleWrap) billingToggleWrap.style.display = 'none';
+        hipaaSection.style.display       = 'none';
+        hipaaToggleSection.style.display = 'none';
+        hipaaToggle.checked              = false;
+        paygNotice.style.display         = 'block';
+    } else if (selected === 'professional') {
+        if (billingToggleWrap) billingToggleWrap.style.display = 'flex';
+        hipaaSection.style.display = 'block';
         hipaaToggleSection.style.display = 'block';
         hipaaStatus.style.display = 'none';
         onHipaaChange(hipaaToggle.checked);
+        trialNotice.style.display = 'block';
     } else if (selected === 'enterprise') {
+        if (billingToggleWrap) billingToggleWrap.style.display = 'flex';
+        hipaaSection.style.display       = 'block';
         hipaaToggleSection.style.display = 'none';
-        hipaaStatus.style.display = 'flex';
-        hipaaStatus.className = 'hipaa-status included';
-        hipaaStatus.innerHTML = '<span>✓</span> HIPAA compliance + BAA included';
+        hipaaStatus.style.display        = 'flex';
+        hipaaStatus.className            = 'hipaa-status included';
+        hipaaStatus.innerHTML            = '<span>✓</span> HIPAA compliance + BAA included';
     } else {
+        // Starter
+        if (billingToggleWrap) billingToggleWrap.style.display = 'flex';
+        hipaaSection.style.display       = 'block';
         hipaaToggleSection.style.display = 'none';
-        hipaaStatus.style.display = 'flex';
-        hipaaStatus.className = 'hipaa-status excluded';
-        hipaaStatus.innerHTML = '<span>⚠</span> No HIPAA — not for protected health information';
-        hipaaToggle.checked = false;
+        hipaaStatus.style.display        = 'flex';
+        hipaaStatus.className            = 'hipaa-status excluded';
+        hipaaStatus.innerHTML            = '<span>⚠</span> No HIPAA — general use only';
+        hipaaToggle.checked              = false;
+        trialNotice.style.display        = 'block';
     }
 
     const btn = document.getElementById('submitBtn');
@@ -362,8 +399,13 @@ function onPlanChange() {
         btn.classList.add('enterprise-btn');
         btn.type = 'button';
         btn.onclick = () => window.location.href = '/contact?reason=sales';
+    } else if (selected === 'payg') {
+        btn.textContent = 'Save card & activate →';
+        btn.classList.remove('enterprise-btn');
+        btn.type = 'submit';
+        btn.onclick = null;
     } else {
-        btn.textContent = 'Continue →';
+        btn.textContent = 'Start free trial →';
         btn.classList.remove('enterprise-btn');
         btn.type = 'submit';
         btn.onclick = null;

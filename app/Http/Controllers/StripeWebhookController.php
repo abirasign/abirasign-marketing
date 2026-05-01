@@ -34,6 +34,7 @@ class StripeWebhookController extends Controller
             'invoice.payment_succeeded'            => $this->handlePaymentSucceeded($event->data->object),
             'invoice.payment_failed'               => $this->handlePaymentFailed($event->data->object),
             'setup_intent.succeeded'               => $this->handleSetupIntentSucceeded($event->data->object),
+            'payment_intent.succeeded'             => $this->handlePaymentIntentSucceeded($event->data->object),
             default                                => null,
         };
 
@@ -571,7 +572,58 @@ class StripeWebhookController extends Controller
             $session->amount_total, $hipaa, $session->customer
         );
     }
+    // ── PAYG envelope charge receipt ──────────────────────────────────────────
+    private function handlePaymentIntentSucceeded($intent)
+    {
+        // Only handle PAYG envelope charges — skip subscription-related intents
+        $metadata = $intent->metadata;
+        if (empty($metadata->tenant_id) || empty($metadata->user_email)) return;
 
+        \Log::info('PAYG payment_intent.succeeded', [
+            'intent_id' => $intent->id,
+            'tenant_id' => $metadata->tenant_id,
+            'amount'    => $intent->amount,
+        ]);
+
+        $tenant = DB::table('tenants')
+            ->where('tenant_id', $metadata->tenant_id)
+            ->first();
+
+        if (!$tenant) return;
+
+        $name   = $tenant->primary_contact ?? $tenant->client_name;
+        $amount = '$' . number_format($intent->amount / 100, 2);
+        $date   = date('F j, Y');
+
+        $html = "
+            <div style='font-family:sans-serif;max-width:600px;color:#111827;'>
+                <div style='margin-bottom:24px;'>
+                    <span style='font-size:20px;font-weight:700;'>Abira<span style='color:#0E7490;'>Sign</span></span>
+                </div>
+                <h2 style='font-size:20px;font-weight:700;color:#111827;margin-bottom:10px;'>Envelope sent — receipt</h2>
+                <p style='font-size:15px;color:#374151;line-height:1.7;'>Hi " . e($name) . ", your envelope has been sent and your card has been charged.</p>
+                <table style='width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;'>
+                    <tr><td style='padding:8px 0;color:#6B7280;width:140px;'>Amount</td><td style='padding:8px 0;font-weight:600;'>{$amount}</td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Date</td><td style='padding:8px 0;'>{$date}</td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Description</td><td style='padding:8px 0;'>1 envelope sent via AbiraSign</td></tr>
+                    <tr><td style='padding:8px 0;color:#6B7280;'>Sent by</td><td style='padding:8px 0;'>" . e($metadata->user_email ?? '—') . "</td></tr>
+                </table>
+                <p style='font-size:13px;color:#6B7280;'>Questions? Reply to this email or contact <a href='mailto:support@abirasign.com' style='color:#534AB7;'>support@abirasign.com</a>.</p>
+                <hr style='border:none;border-top:1px solid #E5E7EB;margin:24px 0;'>
+                <p style='font-size:12px;color:#9CA3AF;'>© " . date('Y') . " BrightNet Technologies LLC, DBA AbiraSign</p>
+            </div>
+        ";
+
+        try {
+            Mail::html($html, function ($mail) use ($tenant, $name, $metadata) {
+                $mail->to($tenant->primary_email, $name)
+                     ->subject('[AbiraSign] Receipt — $10.00 envelope sent');
+            });
+            \Log::info('PAYG envelope receipt sent', ['email' => $tenant->primary_email]);
+        } catch (\Exception $e) {
+            \Log::error('PAYG receipt email failed', ['error' => $e->getMessage()]);
+        }
+    }
     // ── Helpers ───────────────────────────────────────────────────────────────
     private function planFromPriceId(?string $priceId): ?string
     {
