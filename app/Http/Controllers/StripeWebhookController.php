@@ -237,6 +237,83 @@ class StripeWebhookController extends Controller
 
         if (!$row) return;
 
+        $wasTrial      = $row->status === 'trialing';
+        $isPaygSwitch  = $row->pending_plan === 'payg';
+
+        if ($isPaygSwitch) {
+            // Switching to PAYG — retrieve default payment method from Stripe Customer
+            $paymentMethodId = null;
+            try {
+                Stripe::setApiKey(env('STRIPE_SECRET'));
+                $customer        = \Stripe\Customer::retrieve($row->stripe_customer_id);
+                $paymentMethodId = $customer->invoice_settings->default_payment_method
+                    ?? $row->stripe_payment_method_id;
+            } catch (\Exception $e) {
+                \Log::error('PAYG switch: could not retrieve payment method', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            // Switch to PAYG — keep tenant active
+            DB::table('subscriptions')
+                ->where('stripe_sub_id', $subscription->id)
+                ->update([
+                    'plan_type'                => 'payg',
+                    'monthly_rate'             => 0.00,
+                    'billing_term'             => 'monthly',
+                    'status'                   => 'active',
+                    'stripe_sub_id'            => null,
+                    'next_billing'             => null,
+                    'pending_plan'             => null,
+                    'stripe_payment_method_id' => $paymentMethodId,
+                    'updated_at'               => now(),
+                ]);
+
+            DB::table('tenants')
+                ->where('tenant_id', $row->tenant_id)
+                ->update(['status' => 'active', 'updated_at' => now()]);
+
+            // Send plan change email
+            $tenant = DB::table('tenants')->where('tenant_id', $row->tenant_id)->first();
+            if ($tenant) {
+                $name = $tenant->primary_contact ?? $tenant->client_name;
+                $html = "
+                    <div style='font-family:sans-serif;max-width:600px;color:#111827;'>
+                        <div style='margin-bottom:24px;'>
+                            <span style='font-size:20px;font-weight:700;'>Abira<span style='color:#0E7490;'>Sign</span></span>
+                        </div>
+                        <h2 style='font-size:18px;font-weight:700;color:#111827;margin-bottom:12px;'>Your plan has switched to Pay As You Go</h2>
+                        <p style='font-size:15px;color:#374151;line-height:1.7;'>Hi " . e($name) . ", your plan has been switched to <strong>Pay As You Go</strong>.</p>
+                        <p style='font-size:14px;color:#374151;'>Going forward, your card on file will be charged <strong>\$10.00</strong> each time you send an envelope. There is no monthly fee.</p>
+                        <div style='background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:12px 14px;margin:16px 0;font-size:13px;color:#92400e;'>
+                            ⚠ <strong>PAYG accounts cannot process protected health information (PHI).</strong>
+                            If you need HIPAA compliance, upgrade to Professional from your billing page.
+                        </div>
+                        <p style='margin-top:20px;'>
+                            <a href='" . env('ABIRASIGN_APP_URL', 'https://dev.abirasign.com') . "/billing'
+                               style='background:#534AB7;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600;'>
+                                View billing →
+                            </a>
+                        </p>
+                        <hr style='border:none;border-top:1px solid #E5E7EB;margin:24px 0;'>
+                        <p style='font-size:12px;color:#9CA3AF;'>© " . date('Y') . " BrightNet Technologies LLC, DBA AbiraSign</p>
+                    </div>
+                ";
+                try {
+                    Mail::html($html, function ($mail) use ($tenant, $name) {
+                        $mail->to($tenant->primary_email, $name)
+                             ->subject('[AbiraSign] Your plan has switched to Pay As You Go');
+                    });
+                } catch (\Exception $e) {
+                    \Log::error('PAYG switch email failed', ['error' => $e->getMessage()]);
+                }
+            }
+
+            \Log::info('Subscription switched to PAYG', ['tenant_id' => $row->tenant_id]);
+            return;
+        }
+
+        // Normal cancellation — deactivate tenant
         $wasTrial = $row->status === 'trialing';
 
         DB::table('subscriptions')
@@ -247,7 +324,6 @@ class StripeWebhookController extends Controller
             ->where('tenant_id', $row->tenant_id)
             ->update(['status' => 'inactive', 'updated_at' => now()]);
 
-        // Send appropriate cancellation email
         $tenant = DB::table('tenants')->where('tenant_id', $row->tenant_id)->first();
         if ($tenant) {
             if ($wasTrial) {
