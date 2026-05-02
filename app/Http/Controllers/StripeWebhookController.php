@@ -67,6 +67,17 @@ class StripeWebhookController extends Controller
             return;
         }
 
+        // Set payment method as customer default so future lookups work
+        try {
+            \Stripe\Customer::update($setupIntent->customer, [
+                'invoice_settings' => [
+                    'default_payment_method' => $setupIntent->payment_method,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('PAYG: failed to set default payment method', ['error' => $e->getMessage()]);
+        }
+
         // Trigger PAYG provisioning
         $this->triggerProvisioning([
             'client_name'             => $practice,
