@@ -167,12 +167,13 @@ class StripeWebhookController extends Controller
         $isCancelled = $subscription->cancel_at_period_end
             || (!is_null($subscription->cancel_at) && $subscription->cancel_at > time());
 
-        $status = match($subscription->status) {
-            'trialing' => 'trialing',
-            'active'   => $isCancelled ? 'cancelled' : 'active',
-            'past_due' => 'past_due',
-            'canceled' => 'cancelled',
-            default    => $subscription->status,
+        $status = match(true) {
+            $isCancelled                          => 'cancelled',
+            $subscription->status === 'trialing'  => 'trialing',
+            $subscription->status === 'active'    => 'active',
+            $subscription->status === 'past_due'  => 'past_due',
+            $subscription->status === 'canceled'  => 'cancelled',
+            default                               => $subscription->status,
         };
 
         $periodEnd = $subscription->current_period_end
