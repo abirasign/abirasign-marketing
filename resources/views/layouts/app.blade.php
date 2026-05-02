@@ -83,8 +83,15 @@
             .footer { flex-direction: column; align-items: flex-start; padding: 24px 20px; }
         }
     </style>
-    @stack('styles')
-</head>
+   @stack('styles')
+    <!-- Privacy-friendly analytics by Plausible -->
+    <script async src="https://plausible.io/js/pa-flFpansLGlPd2zppBxaBg.js"></script>
+    <script>
+        window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+        plausible.init()
+    </script>
+</head> 
+
 <body>
 
 <nav class="nav">
