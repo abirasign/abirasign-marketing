@@ -238,8 +238,64 @@ class StripeWebhookController extends Controller
         if (!$row) return;
 
         $wasTrial      = $row->status === 'trialing';
-        $isPaygSwitch  = $row->pending_plan === 'payg';
+        $pendingPlan   = $row->pending_plan ?? null;
+        $isPaygSwitch  = $pendingPlan === 'payg';
+        $isPlanSwitch  = in_array($pendingPlan, ['starter', 'payg']);
 
+        // Starter downgrade — reactivate with new plan
+        if ($pendingPlan === 'starter' && !$isPaygSwitch) {
+            DB::table('subscriptions')
+                ->where('stripe_sub_id', $subscription->id)
+                ->update([
+                    'plan_type'    => 'starter',
+                    'monthly_rate' => 45.00,
+                    'status'       => 'active',
+                    'pending_plan' => null,
+                    'next_billing' => null,
+                    'updated_at'   => now(),
+                ]);
+
+            // Create new Starter subscription in Stripe
+            // (handled by upgradePayg flow if needed — for now just update DB)
+            DB::table('tenants')
+                ->where('tenant_id', $row->tenant_id)
+                ->update(['status' => 'active', 'updated_at' => now()]);
+
+            $tenant = DB::table('tenants')->where('tenant_id', $row->tenant_id)->first();
+            if ($tenant) {
+                $name = $tenant->primary_contact ?? $tenant->client_name;
+                $html = "
+                    <div style='font-family:sans-serif;max-width:600px;color:#111827;'>
+                        <div style='margin-bottom:24px;'>
+                            <span style='font-size:20px;font-weight:700;'>Abira<span style='color:#0E7490;'>Sign</span></span>
+                        </div>
+                        <h2 style='font-size:18px;font-weight:700;color:#111827;margin-bottom:12px;'>Your plan has switched to Starter</h2>
+                        <p style='font-size:15px;color:#374151;line-height:1.7;'>Hi " . e($name) . ", your plan has been switched to <strong>Starter</strong>.</p>
+                        <p style='font-size:14px;color:#374151;'>You now have unlimited envelope sends at \$45.00/user/mo. HIPAA compliance and BAA are not available on this plan.</p>
+                        <p style='margin-top:20px;'>
+                            <a href='" . env('ABIRASIGN_APP_URL', 'https://dev.abirasign.com') . "/billing'
+                               style='background:#534AB7;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600;'>
+                                View billing →
+                            </a>
+                        </p>
+                        <hr style='border:none;border-top:1px solid #E5E7EB;margin:24px 0;'>
+                        <p style='font-size:12px;color:#9CA3AF;'>© " . date('Y') . " BrightNet Technologies LLC, DBA AbiraSign</p>
+                    </div>
+                ";
+                try {
+                    Mail::html($html, function ($mail) use ($tenant, $name) {
+                        $mail->to($tenant->primary_email, $name)
+                             ->subject('[AbiraSign] Your plan has switched to Starter');
+                    });
+                } catch (\Exception $e) {
+                    \Log::error('Starter switch email failed', ['error' => $e->getMessage()]);
+                }
+            }
+
+            \Log::info('Subscription switched to Starter', ['tenant_id' => $row->tenant_id]);
+            return;
+        }
+        
         if ($isPaygSwitch) {
             // Switching to PAYG — retrieve default payment method from Stripe Customer
             $paymentMethodId = null;
