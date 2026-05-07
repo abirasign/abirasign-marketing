@@ -67,15 +67,6 @@
             <div class="contact-methods">
                 <div class="contact-method">
                     <div class="contact-method-icon">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4l6 5 6-5" stroke="#0E7490" stroke-width="1.4" stroke-linecap="round"/><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#0E7490" stroke-width="1.4"/></svg>
-                    </div>
-                    <div>
-                        <div class="contact-method-title">Email us</div>
-                        <div class="contact-method-detail"><a href="mailto:hello@abirasign.com">hello@abirasign.com</a><br>We respond within one business day.</div>
-                    </div>
-                </div>
-                <div class="contact-method">
-                    <div class="contact-method-icon">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3.5A1.5 1.5 0 014.5 2h.879a1 1 0 01.943.667l.812 2.167a1 1 0 01-.293 1.09L5.5 7c.95 1.9 2.6 3.55 4.5 4.5l1.076-1.341a1 1 0 011.09-.293l2.167.812A1 1 0 0115 11.621V12.5A1.5 1.5 0 0113.5 14C7.701 14 2 8.299 2 2.5A.5.5 0 013 2v1.5z" stroke="#0E7490" stroke-width="1.4" stroke-linejoin="round"/></svg>
                     </div>
                     <div>
@@ -89,7 +80,7 @@
                     </div>
                     <div>
                         <div class="contact-method-title">Response time</div>
-                        <div class="contact-method-detail">Within one business day for general inquiries.<br>Same day for urgent support issues.</div>
+                        <div class="contact-method-detail">Within one business day for all inquiries.</div>
                     </div>
                 </div>
             </div>
@@ -101,7 +92,6 @@
                     <div class="topic-item"><div class="topic-dot"></div> Enterprise pricing and custom volume quotes</div>
                     <div class="topic-item"><div class="topic-dot"></div> Evaluating AbiraSign for a specific use case</div>
                     <div class="topic-item"><div class="topic-dot"></div> Billing and account questions</div>
-                    <div class="topic-item"><div class="topic-dot"></div> Technical support for existing customers</div>
                 </div>
             </div>
         </div>
@@ -152,7 +142,6 @@
                         <option value="sales" {{ old('subject') == 'sales' ? 'selected' : '' }}>Sales / Pricing</option>
                         <option value="hipaa" {{ old('subject') == 'hipaa' ? 'selected' : '' }}>HIPAA compliance</option>
                         <option value="general" {{ old('subject') == 'general' ? 'selected' : '' }}>General question</option>
-                        <option value="support" {{ old('subject') == 'support' ? 'selected' : '' }}>Technical support</option>
                         <option value="billing" {{ old('subject') == 'billing' ? 'selected' : '' }}>Billing</option>
                         <option value="other" {{ old('subject') == 'other' ? 'selected' : '' }}>Other</option>
                     </select>
@@ -182,7 +171,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const reason = new URLSearchParams(window.location.search).get('reason');
-    const validReasons = ['sales','hipaa','general','support','billing','other'];
+    const validReasons = ['sales','hipaa','general','billing','other'];
     if (reason && validReasons.includes(reason)) {
         const select = document.getElementById('subject');
         if (select) select.value = reason;

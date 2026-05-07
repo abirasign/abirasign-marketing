@@ -137,15 +137,18 @@
 
         {{-- Contextual notices --}}
         @if($isTrial)
-            <div class="notice-box purple">
-                🎉 <strong>14-day free trial active.</strong> You won't be charged until {{ $trialEndFmt }}.
-                Cancel anytime before then — no charge.
-            </div>
+            @if($plan === 'professional')
             <div class="notice-box amber">
                 ⚠ <strong>HIPAA compliance and BAA are not available during your trial.</strong>
                 These features activate automatically when your paid subscription begins.
                 Do not use this account to process protected health information (PHI) during the trial period.
             </div>
+            @else
+            <div class="notice-box amber">
+                ⚠ <strong>HIPAA compliance is not available on the Starter plan.</strong>
+                Do not use this account to process protected health information (PHI).
+            </div>
+            @endif
         @elseif($isPayg)
             <div class="notice-box blue">
                 💳 Your card will be charged <strong>$10.00</strong> each time you send an envelope.
@@ -171,7 +174,11 @@
                 </div>
                 <div class="thankyou-step">
                     <div class="thankyou-step-num step-num-purple">2</div>
-                    Explore AbiraSign free for 14 days. Upload documents, build forms, and send to patients or clients.
+                    @if($plan === 'professional')
+                        Explore AbiraSign free for 14 days. Upload documents, build forms, and send to clients.
+                    @else
+                        Explore AbiraSign free for 14 days. Upload documents or use pre-made templates and send to clients for signature.
+                    @endif
                 </div>
                 <div class="thankyou-step">
                     <div class="thankyou-step-num step-num-purple">3</div>
@@ -184,7 +191,7 @@
                 </div>
                 <div class="thankyou-step">
                     <div class="thankyou-step-num step-num-blue">2</div>
-                    Upload your documents or build forms in your dashboard.
+                    Upload your documents and place signature fields in your dashboard.
                 </div>
                 <div class="thankyou-step">
                     <div class="thankyou-step-num step-num-blue">3</div>
