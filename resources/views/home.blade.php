@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'AbiraSign — E-Signatures for Any Business')
-@section('meta_description', 'Legally binding e-signatures and digital intake forms for any business. HIPAA-compliant add-on available for healthcare practices. No monthly fees on bundles.')
+@section('meta_description', 'Legally binding e-signatures and digital patient intake for any business. HIPAA compliance with BAA included on Professional and Enterprise plans for healthcare practices.')
 
 @push('styles')
 <style>
@@ -125,7 +125,7 @@
         <div class="trust-item"><span class="trust-check">✓</span> Legally binding e-signatures</div>
         <div class="trust-item"><span class="trust-check">✓</span> Works on any device</div>
         <div class="trust-item"><span class="trust-check">✓</span> HIPAA-ready when you need it</div>
-        <div class="trust-item"><span class="trust-check">✓</span> No monthly fees on bundles</div>
+        <div class="trust-item"><span class="trust-check">✓</span> BAA included for healthcare</div>
     </div>
 </section>
 
@@ -140,7 +140,7 @@
                 <div class="uc-icon">🏥</div>
                 <h3>Medical practices</h3>
                 <p>Patient intake, consent forms, and clinical documents with full HIPAA compliance and a signed BAA.</p>
-                <span class="uc-tag">HIPAA add-on available</span>
+                <span class="uc-tag">BAA included on Pro &amp; Enterprise</span>
             </div>
             <div class="uc-card">
                 <div class="uc-icon">⚖️</div>
@@ -202,7 +202,7 @@
     <div class="wrap">
         <div class="section-label">Platform features</div>
         <h2 class="section-title">Everything you need. Nothing you don't.</h2>
-        <p class="section-sub">Core e-signature features for everyone. HIPAA compliance available as an add-on for healthcare.</p>
+        <p class="section-sub">Core e-signature features for everyone. Full HIPAA compliance with BAA included on Professional and Enterprise plans.</p>
         <div class="feat-grid">
             <div class="feat-card">
                 <div class="feat-icon">
@@ -256,14 +256,13 @@
         <div class="hipaa-inner">
             <div>
                 <div class="section-label" style="color: #0E7490;">For healthcare practices</div>
-                <h2>HIPAA compliance when your industry demands it</h2>
-                <p>Most e-signature platforms treat HIPAA as an afterthought — or won't touch it at all. AbiraSign's HIPAA add-on gives healthcare practices a fully isolated, compliant environment without switching platforms.</p>
-                <p>Available on all paid bundles. Includes a signed BAA and dedicated database at onboarding.</p>
+                <p>Most e-signature platforms treat HIPAA as an afterthought — or won't touch it at all. AbiraSign builds HIPAA compliance in from the ground up, giving healthcare practices a fully isolated, compliant environment without switching platforms.</p>
+                <p>Included on Professional and Enterprise plans. A signed Business Associate Agreement and dedicated database are part of onboarding — no add-ons, no surprises.</p>
             </div>
             <div class="hipaa-checks">
                 <div class="hipaa-check"><span class="ck">✓</span> Dedicated tenant database — your data is never co-mingled</div>
                 <div class="hipaa-check"><span class="ck">✓</span> Business Associate Agreement signed at onboarding</div>
-                <div class="hipaa-check"><span class="ck">✓</span> Encrypted storage with 10-year retention lock</div>
+                <div class="hipaa-check"><span class="ck">✓</span> Encrypted storage with retention lock — 10 years for adults, 30 years for minors, per applicable law</div>
                 <div class="hipaa-check"><span class="ck">✓</span> Comprehensive audit log on every patient interaction</div>
                 <div class="hipaa-check"><span class="ck">✓</span> SHA-256 document integrity verification</div>
                 <div class="hipaa-check"><span class="ck">✓</span> E-SIGN Act + UETA compliant signatures</div>
@@ -289,11 +288,12 @@
                 <tr><td>Legally binding e-signatures</td><td class="col-us yes">✓</td><td class="yes">✓</td></tr>
                 <tr><td>Works on any device</td><td class="col-us yes">✓</td><td class="yes">✓</td></tr>
                 <tr><td>Custom form builder</td><td class="col-us yes">✓</td><td class="no">Limited</td></tr>
-                <tr><td>No per-user monthly fees</td><td class="col-us yes">✓</td><td class="no">✕</td></tr>
-                <tr><td>HIPAA add-on available</td><td class="col-us yes">✓</td><td class="no">Enterprise only</td></tr>
-                <tr><td>BAA included</td><td class="col-us yes">✓ on paid plans</td><td class="no">Paid add-on</td></tr>
-                <tr><td>Dedicated database per client</td><td class="col-us yes">✓ with HIPAA add-on</td><td class="no">✕</td></tr>
-                <tr><td>Buy envelopes as needed</td><td class="col-us yes">✓</td><td class="no">✕ subscription only</td></tr>
+                <tr><td>Pay-as-you-go option</td><td class="col-us yes">✓ $10/envelope</td><td class="no">✕ subscription only</td></tr>
+                <tr><td>HIPAA compliance included</td><td class="col-us yes">✓ Professional &amp; Enterprise</td><td class="no">Enterprise only</td></tr>
+                <tr><td>BAA included</td><td class="col-us yes">✓ Professional &amp; Enterprise</td><td class="no">Paid add-on</td></tr>
+                <tr><td>Dedicated database — all plans</td><td class="col-us yes">✓ Every account</td><td class="no">✕</td></tr>
+                <tr><td>Digital patient intake / kiosk mode</td><td class="col-us yes">✓ Pro &amp; Enterprise</td><td class="no">✕</td></tr>
+                <tr><td>Form packets (multi-doc bundles)</td><td class="col-us yes">✓</td><td class="no">Limited</td></tr>
             </tbody>
         </table>
     </div>
@@ -311,7 +311,7 @@
                 <div class="tcard-role">Professional services firm</div>
             </div>
             <div class="tcard">
-                <p class="tcard-quote">"The HIPAA add-on was the deciding factor. We needed a BAA and an isolated database — AbiraSign was the only platform that offered both without enterprise pricing."</p>
+                <p class="tcard-quote">"The BAA and isolated database were the deciding factors. AbiraSign was the only platform that included both as part of the plan — not as a paid add-on."</p>
                 <div class="tcard-author">Practice Manager</div>
                 <div class="tcard-role">Multi-location medical clinic · Georgia</div>
             </div>
@@ -334,8 +334,8 @@
 <section class="pricing-tease">
     <div class="wrap">
         <div class="section-label">Pricing</div>
-        <h2 class="section-title">Buy envelopes when you need them</h2>
-        <p class="section-sub" style="max-width: 500px; margin-left: auto; margin-right: auto;">No subscriptions. No per-user fees. Buy a bundle or pay as you go — add HIPAA compliance on any paid plan.</p>
+        <h2 class="section-title">Simple, transparent pricing</h2>
+        <p class="section-sub" style="max-width: 500px; margin-left: auto; margin-right: auto;">Start pay-as-you-go or subscribe for unlimited sends. HIPAA compliance and a signed BAA are included on Professional and Enterprise — no add-ons required.</p>
         <div class="price-pills">
             <div class="price-pill">
                 <div class="price-pill-name">Pay as you go</div>
@@ -343,19 +343,19 @@
                 <div class="price-pill-note">per envelope</div>
             </div>
             <div class="price-pill">
-                <div class="price-pill-name">Starter bundle</div>
-                <div class="price-pill-val">$XX</div>
-                <div class="price-pill-note">50 envelopes</div>
+                <div class="price-pill-name">Starter</div>
+                <div class="price-pill-val">$45</div>
+                <div class="price-pill-note">per user / mo · unlimited sends</div>
             </div>
             <div class="price-pill">
-                <div class="price-pill-name">Standard bundle</div>
-                <div class="price-pill-val">$XX</div>
-                <div class="price-pill-note">250 envelopes</div>
+                <div class="price-pill-name">Professional</div>
+                <div class="price-pill-val">$75</div>
+                <div class="price-pill-note">per user / mo · HIPAA + BAA included</div>
             </div>
             <div class="price-pill">
                 <div class="price-pill-name">Enterprise</div>
                 <div class="price-pill-val">Custom</div>
-                <div class="price-pill-note">volume pricing</div>
+                <div class="price-pill-note">multi-location · white-label · API</div>
             </div>
         </div>
         <a href="{{ route('pricing') }}" class="btn btn-ghost">See full pricing details →</a>
@@ -368,7 +368,7 @@
     <p>Set up in minutes. No IT required. HIPAA-ready when your industry needs it.</p>
     <div class="final-btns">
         <a href="{{ route('signup') }}" class="btn btn-primary">Get started today</a>
-        <a href="mailto:hello@abirasign.com" class="btn btn-ghost">Contact sales</a>
+        <a href="https://abirasign.com/contact?reason=sales" class="btn btn-ghost">Contact sales</a>
     </div>
 </section>
 

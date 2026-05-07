@@ -114,6 +114,7 @@
     <div class="section-label">Pricing</div>
     <h1>Transparent pricing. No surprises.</h1>
     <p>No per-envelope fees on paid plans. No contracts. HIPAA compliance included on Professional and Enterprise — not a locked-away enterprise feature.</p>
+    <p style="margin-top: 12px; font-size: 14px; color: var(--teal); font-weight: 600;">✓ Starter and Professional include a 14-day free trial.</p>
     <div class="billing-toggle-wrap">
         <span class="billing-toggle-label" id="label-monthly">Monthly</span>
         <label class="toggle">
@@ -146,10 +147,8 @@
                     <li><span class="ck">✓</span> Email delivery</li>
                     <li><span class="ck">✓</span> Mobile responsive signing</li>
                     <li><span class="ck">✓</span> Reporting</li>
-                    <li><span class="nx">✕</span> <span style="opacity:.6">No HIPAA compliance</span></li>
-                    <li><span class="nx">✕</span> <span style="opacity:.6">No form builder</span></li>
                 </ul>
-                <a href="{{ route('signup') }}?plan=payg" class="plan-btn plan-btn-outline">Get started free</a>
+                <a href="{{ route('signup') }}?plan=payg" class="plan-btn plan-btn-outline">Get started</a>
             </div>
 
             {{-- Starter --}}
@@ -158,7 +157,11 @@
                 <div class="plan-name">Starter</div>
                 <div class="plan-desc">For small teams with regular signing needs. General business use.</div>
                 <div class="plan-price"><sup>$</sup><span id="price-starter">40.50</span><sub>/user/mo</sub></div>
-                <div class="plan-price-note" id="note-starter">Billed annually · no contract</div>
+                <div class="plan-price-note" id="note-starter"></div>
+                <div id="annual-starter" style="display:none; font-size: 12px; color: var(--text-secondary); margin-top: -18px; margin-bottom: 6px; line-height: 1.5;">
+                    <s style="color: var(--text-muted);">$45.00</s> $40.50/user/mo &nbsp;·&nbsp; <strong style="color: var(--text-primary);">$486.00/user billed annually</strong>
+                </div>
+                <div style="font-size: 12px; color: #166534; background: #DCFCE7; border-radius: var(--radius-pill); padding: 3px 10px; display: inline-block; margin-bottom: 8px; font-weight: 600;">14-day free trial</div>
                 <span class="plan-hipaa-none">No HIPAA — general use only</span>
                 <div class="plan-divider"></div>
                 <ul class="plan-features">
@@ -172,7 +175,7 @@
                     <li><span class="ck">✓</span> Email delivery</li>
                     <li><span class="ck">✓</span> Reporting</li>
                 </ul>
-                <a href="{{ route('signup') }}?plan=starter" class="plan-btn plan-btn-outline">Get started</a>
+                <a href="{{ route('signup') }}?plan=starter&billing=annual" id="btn-starter" class="plan-btn plan-btn-outline">Get started</a>
             </div>
 
             {{-- Professional --}}
@@ -182,7 +185,11 @@
                 <div class="plan-name">Professional</div>
                 <div class="plan-desc">For growing teams and healthcare practices. HIPAA included.</div>
                 <div class="plan-price"><sup>$</sup><span id="price-professional">67.50</span><sub>/user/mo</sub></div>
-                <div class="plan-price-note" id="note-professional">Billed annually · no contract</div>
+                <div class="plan-price-note" id="note-professional"></div>
+                <div id="annual-professional" style="display:none; font-size: 12px; color: var(--text-secondary); margin-top: -18px; margin-bottom: 6px; line-height: 1.5;">
+                    <s style="color: var(--text-muted);">$75.00</s> $67.50/user/mo &nbsp;·&nbsp; <strong style="color: var(--text-primary);">$810.00/user billed annually</strong>
+                </div>
+                <div style="font-size: 12px; color: #166534; background: #DCFCE7; border-radius: var(--radius-pill); padding: 3px 10px; display: inline-block; margin-bottom: 8px; font-weight: 600;">14-day free trial</div>
                 <span class="plan-hipaa-badge">✓ HIPAA compliance included</span>
                 <div class="plan-divider"></div>
                 <ul class="plan-features">
@@ -195,7 +202,7 @@
                     <li><span class="ck">✓</span> Custom branding + logo</li>
                     <li><span class="ck">✓</span> Kiosk mode for in-person signing</li>
                 </ul>
-                <a href="{{ route('signup') }}?plan=professional" class="plan-btn plan-btn-primary">Get started</a>
+                <a href="{{ route('signup') }}?plan=professional&billing=annual" id="btn-professional" class="plan-btn plan-btn-primary">Get started</a>
             </div>
 
             {{-- Enterprise --}}
@@ -424,8 +431,8 @@
                 </tr>
                 <tr>
                     <td>Dedicated tenant database</td>
-                    <td><span class="no">—</span></td>
-                    <td><span class="no">—</span></td>
+                    <td><span class="yes">✓</span></td>
+                    <td><span class="yes">✓</span></td>
                     <td class="col-featured"><span class="yes">✓</span></td>
                     <td><span class="yes">✓</span></td>
                 </tr>
@@ -532,7 +539,7 @@
     <h2>Ready to get started?</h2>
     <p>Set up in minutes. No IT required. HIPAA-ready when your industry needs it.</p>
     <div class="cta-btns">
-        <a href="{{ route('signup') }}" class="btn btn-primary">Get started today</a>
+        <a href="{{ route('signup') }}?billing=annual" id="btn-cta" class="btn btn-primary">Get started today</a>
         <a href="{{ route('contact') }}" class="btn btn-ghost">Talk to sales</a>
     </div>
 </section>
@@ -542,15 +549,36 @@
 @push('scripts')
 <script>
 function toggleBilling(isAnnual) {
+    // Monthly price display
     document.getElementById('price-starter').textContent      = isAnnual ? '40.50' : '45.00';
-    document.getElementById('note-starter').textContent       = isAnnual ? 'Billed annually · no contract' : 'Billed monthly · no contract';
     document.getElementById('price-professional').textContent = isAnnual ? '67.50' : '75.00';
-    document.getElementById('note-professional').textContent  = isAnnual ? 'Billed annually · no contract' : 'Billed monthly · no contract';
+
+    // Table header prices
     document.getElementById('th-starter').textContent         = isAnnual ? '$40.50/user/mo' : '$45.00/user/mo';
     document.getElementById('th-professional').textContent    = isAnnual ? '$67.50/user/mo' : '$75.00/user/mo';
+
+    // Toggle label active state
     document.getElementById('label-monthly').classList.toggle('active', !isAnnual);
     document.getElementById('label-annual').classList.toggle('active', isAnnual);
+
+    // Sync signup button hrefs to carry billing term
+    const term = isAnnual ? 'annual' : 'monthly';
+    const base = '{{ route("signup") }}';
+    document.getElementById('btn-starter').href      = `${base}?plan=starter&billing=${term}`;
+    document.getElementById('btn-professional').href = `${base}?plan=professional&billing=${term}`;
+    document.getElementById('btn-cta').href          = `${base}?billing=${term}`;
+
+    // Price notes (simple line when monthly)
+    document.getElementById('note-starter').textContent      = isAnnual ? '' : 'Billed monthly · no contract';
+    document.getElementById('note-professional').textContent = isAnnual ? '' : 'Billed monthly · no contract';
+
+    // Annual breakdown lines — show on annual, hide on monthly
+    document.getElementById('annual-starter').style.display      = isAnnual ? 'block' : 'none';
+    document.getElementById('annual-professional').style.display = isAnnual ? 'block' : 'none';
 }
+
+// Set initial state to match the toggle's default (annual = checked)
+toggleBilling(document.getElementById('billingToggle').checked);
 
 function toggleFaq(btn) {
     const item = btn.closest('.faq-item');

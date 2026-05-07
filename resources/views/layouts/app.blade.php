@@ -102,7 +102,7 @@
         <a href="{{ route('home') }}#hipaa">HIPAA</a>
         <a href="{{ route('contact') }}">Contact</a>
         <a href="{{ env('APP_LOGIN_URL', 'https://dev.abirasign.com/login') }}" class="nav-login">Log in</a>
-        <a href="{{ route('signup') }}" class="nav-cta">Get started</a>
+        <a href="{{ route('pricing') }}" class="nav-cta">Get started</a>
     </div>
     <button class="nav-mobile-btn" onclick="document.getElementById('navLinks').classList.toggle('open')" aria-label="Menu">
         <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -120,7 +120,7 @@
         <a href="{{ route('contact') }}">Contact</a>
         <a href="{{ route('terms') }}">Terms of service</a>
         <a href="{{ route('privacy') }}">Privacy policy</a>
-        <a href="{{ route('signup') }}">Get started</a>
+        <a href="{{ route('pricing') }}">Get started</a>
     </div>
     <div class="footer-copy">© {{ date('Y') }} BrightNet Technologies LLC</div>
 </footer>

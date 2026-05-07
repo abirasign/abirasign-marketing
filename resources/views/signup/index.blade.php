@@ -85,25 +85,25 @@
         <div class="signup-left">
             <div class="section-label">Get started</div>
             <h1>Start sending documents for signature today</h1>
-            <p>Tell us about your practice or business and we'll get your account set up. No credit card required on Pay as you go.</p>
+            <p>Set up your account in minutes. Starter and Professional include a 14-day free trial — no commitment required.</p>
             <div class="signup-points">
                 <div class="signup-point">
                     <div class="signup-point-icon">
                         <svg viewBox="0 0 13 13" fill="none"><path d="M2 7l3 3 6-6" stroke="#0E7490" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </div>
-                    <div class="signup-point-text"><strong>No per-envelope fees on paid plans.</strong> Unlimited sends on Starter, Professional, and Enterprise.</div>
+                    <div class="signup-point-text"><strong>Unlimited sends on paid plans.</strong> Starter, Professional, and Enterprise all include unlimited envelope sends — no per-document fees.</div>
                 </div>
                 <div class="signup-point">
                     <div class="signup-point-icon">
                         <svg viewBox="0 0 13 13" fill="none"><path d="M2 7l3 3 6-6" stroke="#0E7490" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </div>
-                    <div class="signup-point-text"><strong>HIPAA compliance included.</strong> Professional and Enterprise come with a dedicated database and BAA — no add-on fees.</div>
+                    <div class="signup-point-text"><strong>Dedicated database on every plan.</strong> Your data is never co-mingled. HIPAA compliance and a signed BAA are available on Professional and Enterprise.</div>
                 </div>
                 <div class="signup-point">
                     <div class="signup-point-icon">
                         <svg viewBox="0 0 13 13" fill="none"><path d="M2 7l3 3 6-6" stroke="#0E7490" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </div>
-                    <div class="signup-point-text"><strong>Up and running fast.</strong> Most accounts are active within one business day.</div>
+                    <div class="signup-point-text"><strong>Self-service setup.</strong> PAYG and subscription accounts are provisioned automatically — you'll receive your login within minutes of signing up.</div>
                 </div>
                 <div class="signup-point">
                     <div class="signup-point-icon">
@@ -210,15 +210,15 @@
                                 <div class="plan-option-name">Starter</div>
                                 <div class="plan-option-desc">Unlimited sends · general use</div>
                             </div>
-                            <div class="plan-option-price" id="price-starter">$40.50/user/mo</div>
+                            <div class="plan-option-price" id="price-starter"><span id="price-starter-strike" style="display:none;text-decoration:line-through;color:var(--text-muted);font-weight:400;margin-right:4px;"></span><span id="price-starter-val">$45.00/user/mo</span></div>
                         </label>
                         <label class="plan-option" data-plan="professional">
                             <input type="radio" name="plan" value="professional" onchange="onPlanChange()">
                             <div class="plan-option-info">
                                 <div class="plan-option-name">Professional</div>
-                                <div class="plan-option-desc">Unlimited sends · HIPAA + BAA included</div>
+                                <div class="plan-option-desc">Unlimited sends · HIPAA + BAA available</div>
                             </div>
-                            <div class="plan-option-price" id="price-professional">$67.50/user/mo</div>
+                            <div class="plan-option-price" id="price-professional"><span id="price-professional-strike" style="display:none;text-decoration:line-through;color:var(--text-muted);font-weight:400;margin-right:4px;"></span><span id="price-professional-val">$75.00/user/mo</span></div>
                         </label>
                         <label class="plan-option" data-plan="enterprise">
                             <input type="radio" name="plan" value="enterprise" onchange="onPlanChange()">
@@ -321,10 +321,25 @@ function formatPrice(perUser, users) {
 
 function updatePrices() {
     const isAnnual = document.getElementById('billingToggle').checked;
-    const term     = isAnnual ? 'annual' : 'monthly';
     const users    = Math.max(1, parseInt(document.getElementById('num_users').value) || 1);
-    document.getElementById('price-starter').textContent      = formatPrice(PRICES.starter[term], users);
-    document.getElementById('price-professional').textContent = formatPrice(PRICES.professional[term], users);
+
+    ['starter', 'professional'].forEach(plan => {
+        const monthlyPrice = PRICES[plan].monthly;
+        const annualPrice  = PRICES[plan].annual;
+        const strikeEl     = document.getElementById(`price-${plan}-strike`);
+        const valEl        = document.getElementById(`price-${plan}-val`);
+        if (!strikeEl || !valEl) return;
+
+        if (isAnnual) {
+            strikeEl.textContent  = formatPrice(monthlyPrice, users);
+            strikeEl.style.display = 'inline';
+            valEl.textContent     = formatPrice(annualPrice, users);
+        } else {
+            strikeEl.style.display = 'none';
+            valEl.textContent     = formatPrice(monthlyPrice, users);
+        }
+    });
+
     document.getElementById('label-monthly').classList.toggle('active', !isAnnual);
     document.getElementById('label-annual').classList.toggle('active', isAnnual);
 }
@@ -371,7 +386,7 @@ function onPlanChange() {
         hipaaToggle.checked              = false;
         paygNotice.style.display         = 'block';
     } else if (selected === 'professional') {
-        if (billingToggleWrap) billingToggleWrap.style.display = 'none';
+        if (billingToggleWrap) billingToggleWrap.style.display = 'flex';
         hipaaSection.style.display = 'block';
         hipaaToggleSection.style.display = 'block';
         hipaaStatus.style.display = 'none';
@@ -386,7 +401,7 @@ function onPlanChange() {
         hipaaStatus.innerHTML            = '<span>✓</span> HIPAA compliance + BAA included';
     } else {
         // Starter
-        if (billingToggleWrap) billingToggleWrap.style.display = 'none';
+        if (billingToggleWrap) billingToggleWrap.style.display = 'flex';
         hipaaSection.style.display       = 'block';
         hipaaToggleSection.style.display = 'none';
         hipaaStatus.style.display        = 'flex';
@@ -416,7 +431,7 @@ function onPlanChange() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const isAnnual = initBilling !== 'monthly';
+    const isAnnual = initBilling === 'annual';
     document.getElementById('billingToggle').checked = isAnnual;
     document.getElementById('billingInput').value = isAnnual ? 'annual' : 'monthly';
     updatePrices();
