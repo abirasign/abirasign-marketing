@@ -56,7 +56,7 @@
             @if(!$policy)
                 <div class="draft-notice">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:1px"><circle cx="8" cy="8" r="7" stroke="#D97706" stroke-width="1.5"/><path d="M8 5v3M8 10.5v.5" stroke="#D97706" stroke-width="1.5" stroke-linecap="round"/></svg>
-                    <p>These terms are currently being finalized by legal counsel. Final terms will be published prior to general availability. Questions? Contact us at <a href="mailto:hello@abirasign.com">hello@abirasign.com</a>.</p>
+                    <p>These terms are currently being finalized by legal counsel. Final terms will be published prior to general availability. Questions? Contact us at <a href="/contact">Contact us</a>..</p>
                 </div>
             @else
                 @php

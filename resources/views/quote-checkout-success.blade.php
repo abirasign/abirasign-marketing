@@ -102,7 +102,7 @@
         </div>
 
         <p style="font-size:13px;color:var(--text-secondary);margin-top:8px;">
-            Questions? Contact us at <a href="mailto:support@abirasign.com" style="color:var(--teal-dark);">support@abirasign.com</a>
+            Questions? <a href="/contact" style="color:var(--teal-dark);">Contact us</a>
         </p>
 
     </div>

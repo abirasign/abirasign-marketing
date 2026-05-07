@@ -212,7 +212,7 @@
                 </div>
                 <div class="thankyou-step">
                     <div class="thankyou-step-num step-num-green">3</div>
-                    Need help? Email <a href="mailto:support@abirasign.com" style="color:var(--teal);">support@abirasign.com</a> — we typically respond within one business day.
+                    Need help? <a href="/contact" style="color:var(--teal);">Contact us</a> — we typically respond within one business day.
                 </div>
             @endif
         </div>
