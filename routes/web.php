@@ -23,6 +23,7 @@ Route::get('/terms/v/{version}', [PolicyController::class, 'termsVersion'])->nam
 Route::get('/privacy',           [PolicyController::class, 'privacy'])->name('privacy');
 Route::get('/privacy/archive',   [PolicyController::class, 'privacyArchive'])->name('privacy.archive');
 Route::get('/privacy/v/{version}', [PolicyController::class, 'privacyVersion'])->name('privacy.version');
+Route::get('/features', fn() => view('features'))->name('features');
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
 Route::get('/contact/thank-you', [ContactController::class, 'thankYou'])->name('contact.thankyou');

@@ -97,7 +97,7 @@
 <nav class="nav">
     <a href="{{ route('home') }}" class="nav-logo">Abira<span>Sign</span></a>
     <div class="nav-links" id="navLinks">
-        <a href="{{ route('home') }}">Features</a>
+        <a href="{{ route('features') }}">Features</a>
         <a href="{{ route('pricing') }}">Pricing</a>
         <a href="{{ route('home') }}#hipaa">HIPAA</a>
         <a href="{{ route('contact') }}">Contact</a>
