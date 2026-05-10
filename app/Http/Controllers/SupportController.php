@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 class SupportController extends Controller
@@ -12,9 +13,135 @@ class SupportController extends Controller
         return view('support');
     }
 
+    // KB homepage — category grid + popular articles
     public function kb()
     {
-        return view('support-kb');
+        $categories = DB::table('kb_categories')
+            ->where('status', 'active')
+            ->orderBy('sort_order')
+            ->get();
+
+        // Article counts per category (published only)
+        $counts = DB::table('kb_articles')
+            ->where('status', 'published')
+            ->select('category_id', DB::raw('COUNT(*) as total'))
+            ->groupBy('category_id')
+            ->get()
+            ->keyBy('category_id');
+
+        $popular = DB::table('kb_articles as a')
+            ->join('kb_categories as c', 'c.id', '=', 'a.category_id')
+            ->where('a.status', 'published')
+            ->where('c.status', 'active')
+            ->select('a.id', 'a.title', 'a.slug', 'a.excerpt', 'a.views', 'c.name as category_name', 'c.slug as category_slug')
+            ->orderBy('a.views', 'desc')
+            ->limit(6)
+            ->get();
+
+        return view('support-kb', [
+            'categories' => $categories,
+            'counts'     => $counts,
+            'popular'    => $popular,
+        ]);
+    }
+
+    // Search results
+    public function search(Request $request)
+    {
+        $q       = trim($request->input('q', ''));
+        $results = collect();
+
+        if (strlen($q) >= 2) {
+            $results = DB::table('kb_articles as a')
+                ->join('kb_categories as c', 'c.id', '=', 'a.category_id')
+                ->where('a.status', 'published')
+                ->where('c.status', 'active')
+                ->where(function ($query) use ($q) {
+                    $query->whereRaw('MATCH(a.title, a.body) AGAINST(? IN BOOLEAN MODE)', [$q . '*'])
+                          ->orWhere('a.title', 'like', '%' . $q . '%');
+                })
+                ->select('a.id', 'a.title', 'a.slug', 'a.excerpt', 'a.views', 'c.name as category_name', 'c.slug as category_slug')
+                ->orderByRaw('MATCH(a.title, a.body) AGAINST(? IN BOOLEAN MODE) DESC', [$q . '*'])
+                ->limit(20)
+                ->get();
+        }
+
+        $categories = DB::table('kb_categories')
+            ->where('status', 'active')
+            ->orderBy('sort_order')
+            ->get();
+
+        return view('support-kb-search', [
+            'q'          => $q,
+            'results'    => $results,
+            'categories' => $categories,
+        ]);
+    }
+
+    // Category article list
+    public function category(string $slug)
+    {
+        $category = DB::table('kb_categories')
+            ->where('slug', $slug)
+            ->where('status', 'active')
+            ->firstOrFail();
+
+        $articles = DB::table('kb_articles')
+            ->where('category_id', $category->id)
+            ->where('status', 'published')
+            ->orderBy('views', 'desc')
+            ->orderBy('title')
+            ->get();
+
+        $categories = DB::table('kb_categories')
+            ->where('status', 'active')
+            ->orderBy('sort_order')
+            ->get();
+
+        return view('support-kb-category', [
+            'category'   => $category,
+            'articles'   => $articles,
+            'categories' => $categories,
+        ]);
+    }
+
+    // Article view — increments views
+    public function article(string $slug)
+    {
+        $article = DB::table('kb_articles as a')
+            ->join('kb_categories as c', 'c.id', '=', 'a.category_id')
+            ->where('a.slug', $slug)
+            ->where('a.status', 'published')
+            ->where('c.status', 'active')
+            ->select('a.*', 'c.name as category_name', 'c.slug as category_slug')
+            ->first();
+
+        if (!$article) {
+            abort(404);
+        }
+
+        // Increment view counter
+        DB::table('kb_articles')->where('id', $article->id)->increment('views');
+
+        // Related articles — same category, exclude current
+        $related = DB::table('kb_articles')
+            ->where('category_id', $article->category_id)
+            ->where('status', 'published')
+            ->where('id', '!=', $article->id)
+            ->orderBy('views', 'desc')
+            ->limit(4)
+            ->get();
+
+        $categories = DB::table('kb_categories')
+            ->where('status', 'active')
+            ->orderBy('sort_order')
+            ->get();
+
+        return view('support-kb-article', [
+            'article'    => $article,
+            'related'    => $related,
+            'categories' => $categories,
+        ]);
     }
 
     public function request()
@@ -69,7 +196,6 @@ class SupportController extends Controller
         $planLabel  = $planLabels[$plan]   ?? ucfirst($plan);
         $topicLabel = $topicLabels[$topic] ?? ucfirst($topic);
 
-        // Handle screenshot upload
         $attachmentPath = null;
         $attachmentName = null;
         if ($request->hasFile('screenshot') && $request->file('screenshot')->isValid()) {
@@ -110,7 +236,6 @@ class SupportController extends Controller
                 }
             });
 
-            // Confirmation to submitter
             $confirmHtml = "
                 <div style='font-family: sans-serif; max-width: 600px; color: #111827;'>
                     <div style='margin-bottom: 24px;'>
@@ -132,7 +257,6 @@ class SupportController extends Controller
                 $mail->to($email, $name)->subject('Support request received — AbiraSign');
             });
 
-            // Clean up temp file
             if ($attachmentPath && file_exists($attachmentPath)) {
                 @unlink($attachmentPath);
             }

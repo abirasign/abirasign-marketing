@@ -26,7 +26,10 @@ Route::get('/privacy/archive',   [PolicyController::class, 'privacyArchive'])->n
 Route::get('/privacy/v/{version}', [PolicyController::class, 'privacyVersion'])->name('privacy.version');
 Route::get('/features', fn() => view('features'))->name('features');
 Route::get('/support', [SupportController::class, 'show'])->name('support');
-Route::get('/support/kb', [SupportController::class, 'kb'])->name('support.kb');
+Route::get('/support/kb',                              [SupportController::class, 'kb'])->name('support.kb');
+Route::get('/support/kb/search',                       [SupportController::class, 'search'])->name('support.kb.search');
+Route::get('/support/kb/category/{slug}',              [SupportController::class, 'category'])->name('support.kb.category');
+Route::get('/support/kb/article/{slug}',               [SupportController::class, 'article'])->name('support.kb.article');
 Route::get('/support/request', [SupportController::class, 'request'])->name('support.request');
 Route::post('/support/request', [SupportController::class, 'submit'])->name('support.submit');
 Route::get('/support/thank-you', [SupportController::class, 'thankYou'])->name('support.thankyou');
