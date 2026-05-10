@@ -115,4 +115,5 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
     'contact_to' => env('CONTACT_FORM_TO', 'hello@abirasign.com'),
+    'support_to' => env('SUPPORT_FORM_TO', 'choskins@abirasign.com'),
 ];

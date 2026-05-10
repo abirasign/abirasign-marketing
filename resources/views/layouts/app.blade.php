@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="@yield('meta_description', 'AbiraSign — legally binding e-signatures and digital intake forms for any business. HIPAA-compliant add-on available for healthcare practices.')">
+    <meta name="description" content="@yield('meta_description', 'AbiraSign — legally binding e-signatures and digital intake forms for any business. HIPAA compliance included on Professional and Enterprise plans.')">
     @if(app()->environment('production'))
         <meta name="robots" content="index, follow">
     @else
@@ -100,6 +100,7 @@
         <a href="{{ route('features') }}">Features</a>
         <a href="{{ route('pricing') }}">Pricing</a>
         <a href="{{ route('home') }}#hipaa">HIPAA</a>
+        <a href="{{ route('support') }}">Support</a>
         <a href="{{ route('contact') }}">Contact</a>
         <a href="{{ env('APP_LOGIN_URL', 'https://dev.abirasign.com/login') }}" class="nav-login">Log in</a>
         <a href="{{ route('pricing') }}" class="nav-cta">Get started</a>
@@ -116,7 +117,9 @@
 <footer class="footer">
     <div class="footer-logo">Abira<span>Sign</span></div>
     <div class="footer-links">
+        <a href="{{ route('features') }}">Features</a>
         <a href="{{ route('pricing') }}">Pricing</a>
+        <a href="{{ route('support') }}">Support</a>
         <a href="{{ route('contact') }}">Contact</a>
         <a href="{{ route('terms') }}">Terms of service</a>
         <a href="{{ route('privacy') }}">Privacy policy</a>

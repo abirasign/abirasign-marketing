@@ -6,6 +6,7 @@ use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\PolicyController;
+use App\Http\Controllers\SupportController;
 
 Route::get('/robots.txt', function () {
     $content = app()->environment('production')
@@ -24,6 +25,11 @@ Route::get('/privacy',           [PolicyController::class, 'privacy'])->name('pr
 Route::get('/privacy/archive',   [PolicyController::class, 'privacyArchive'])->name('privacy.archive');
 Route::get('/privacy/v/{version}', [PolicyController::class, 'privacyVersion'])->name('privacy.version');
 Route::get('/features', fn() => view('features'))->name('features');
+Route::get('/support', [SupportController::class, 'show'])->name('support');
+Route::get('/support/kb', [SupportController::class, 'kb'])->name('support.kb');
+Route::get('/support/request', [SupportController::class, 'request'])->name('support.request');
+Route::post('/support/request', [SupportController::class, 'submit'])->name('support.submit');
+Route::get('/support/thank-you', [SupportController::class, 'thankYou'])->name('support.thankyou');
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
 Route::get('/contact/thank-you', [ContactController::class, 'thankYou'])->name('contact.thankyou');
