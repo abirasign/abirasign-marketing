@@ -244,11 +244,11 @@
         </div>
         <div style="flex:1;">
             <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:4px;">Enable HIPAA compliance + BAA</div>
-            <div style="font-size:12px; color:var(--text-secondary); line-height:1.6;">Includes a dedicated database and Business Associate Agreement. Required if you handle protected health information (PHI). A BAA will be sent to you before your account is activated.</div>
+            <div style="font-size:12px; color:var(--text-secondary); line-height:1.6;">Includes a dedicated database and Business Associate Agreement. Required if you handle protected health information (PHI). A fully executed BAA is required for some features.</div>
         </div>
     </div>
     <div id="hipaaOnBadge" style="display:none; margin-top:10px; padding:8px 12px; background:#DCFCE7; border-radius:var(--radius-md); font-size:12px; font-weight:600; color:#166534;">
-        ✓ HIPAA + BAA will be sent to you before activation
+        ✓ Executed BAA required to send PHI.
     </div>
 </div>
                 </div>
@@ -261,6 +261,19 @@
                         📅 Trials start on <strong>monthly billing</strong>. You can switch to annual (and save 10%) after your trial ends from your billing page.
                     </div>
                 </div>
+
+                {{-- Skip trial toggle (Professional only) --}}
+                <div id="skipTrialWrap" style="display:none;margin-top:10px;">
+                    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg-alt);">
+                        <input type="checkbox" id="skipTrialToggle" onchange="onSkipTrialChange()"
+                               style="width:15px;height:15px;margin-top:2px;flex-shrink:0;accent-color:var(--teal);cursor:pointer;">
+                        <span style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
+                            <strong style="color:var(--text-primary);">Skip the trial — I need HIPAA access right away.</strong>
+                            Your card will be charged immediately and HIPAA compliance + BAA will be available from day one.
+                        </span>
+                    </label>
+                </div>
+                <input type="hidden" name="skip_trial" id="skipTrialInput" value="0">
 
                 {{-- PAYG notice --}}
                 <div id="paygNotice" style="display:none;margin-top:12px;padding:12px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius-md);font-size:13px;color:#0c4a6e;">
@@ -349,6 +362,20 @@ function onBillingChange(isAnnual) {
     updatePrices();
 }
 
+function onSkipTrialChange() {
+    const checked = document.getElementById('skipTrialToggle').checked;
+    document.getElementById('skipTrialInput').value = checked ? '1' : '0';
+    const trialNotice        = document.getElementById('trialNotice');
+    const hipaaToggleSection = document.getElementById('hipaaToggleSection');
+    const hipaaToggle        = document.getElementById('hipaaToggle');
+    trialNotice.style.display        = checked ? 'none' : 'block';
+    hipaaToggleSection.style.display = checked ? 'block' : 'none';
+    if (!checked) {
+        hipaaToggle.checked = false;
+        onHipaaChange(false);
+    }
+}
+
 function onHipaaChange(isOn) {
     document.getElementById('hipaaOnBadge').style.display = isOn ? 'flex' : 'none';
     const status = document.getElementById('hipaaStatus');
@@ -377,6 +404,9 @@ function onPlanChange() {
     // Reset notices
     trialNotice.style.display = 'none';
     paygNotice.style.display  = 'none';
+    document.getElementById('skipTrialWrap').style.display = 'none';
+    document.getElementById('skipTrialToggle').checked = false;
+    document.getElementById('skipTrialInput').value = '0';
 
     if (selected === 'payg') {
         // PAYG: hide billing toggle, hide HIPAA entirely, show PAYG notice
@@ -387,11 +417,13 @@ function onPlanChange() {
         paygNotice.style.display         = 'block';
     } else if (selected === 'professional') {
         if (billingToggleWrap) billingToggleWrap.style.display = 'flex';
-        hipaaSection.style.display = 'block';
-        hipaaToggleSection.style.display = 'block';
+        hipaaSection.style.display       = 'block';
+        hipaaToggleSection.style.display = 'none';
+        hipaaToggle.checked              = false;
+        onHipaaChange(false);
         hipaaStatus.style.display = 'none';
-        onHipaaChange(hipaaToggle.checked);
         trialNotice.style.display = 'block';
+        document.getElementById('skipTrialWrap').style.display = 'block';
     } else if (selected === 'enterprise') {
         if (billingToggleWrap) billingToggleWrap.style.display = 'flex';
         hipaaSection.style.display       = 'block';

@@ -139,6 +139,7 @@ class StripeWebhookController extends Controller
                 'billing'                => $billing,
                 'num_users'              => $numUsers,
                 'hipaa_required'         => $hipaa,
+                'skip_trial'             => ($metadata->skip_trial ?? '0') === '1',
                 'stripe_customer_id'     => $session->customer,
                 'stripe_subscription_id' => $session->subscription,
             ]);

@@ -43,7 +43,7 @@
     $numUsers  = session('signup_num_users', 1);
     $hipaa     = session('signup_hipaa', false) && in_array($plan, ['professional', 'enterprise']);
     $trialEnd  = session('signup_trial_end');
-    $isTrial   = in_array($plan, ['starter', 'professional']);
+    $isTrial   = in_array($plan, ['starter', 'professional']) && !session('signup_skip_trial');
     $isPayg    = $plan === 'payg';
 
     $planLabel = match($plan) {

@@ -89,6 +89,7 @@ class SignupController extends Controller
             'practice_type'  => $request->practice_type,
             'num_users'      => $request->num_users,
             'hipaa_required' => $request->boolean('hipaa_required') ? '1' : '0',
+            'skip_trial'     => ($request->plan === 'professional' && $request->input('skip_trial') === '1') ? '1' : '0',
         ];
 
         // PAYG — Setup Intent to save card, no immediate charge
@@ -126,6 +127,12 @@ class SignupController extends Controller
             return back()->withErrors(['plan' => 'Unable to find pricing for the selected plan. Please try again.']);
         }
 
+        $skipTrial = $request->plan === 'professional' && $request->input('skip_trial') === '1';
+
+        $subscriptionData = $skipTrial
+            ? ['metadata' => array_merge($meta, ['billing' => 'monthly'])]
+            : ['trial_period_days' => 14, 'metadata' => array_merge($meta, ['billing' => 'monthly'])];
+
         $checkoutSession = StripeSession::create([
             'mode'                 => 'subscription',
             'payment_method_types' => ['card'],
@@ -135,10 +142,7 @@ class SignupController extends Controller
                 'price'    => $priceId,
                 'quantity' => (int) $request->num_users,
             ]],
-            'subscription_data' => [
-                'trial_period_days' => 14,
-                'metadata'          => array_merge($meta, ['billing' => 'monthly']),
-            ],
+            'subscription_data'     => $subscriptionData,
             'success_url'           => route('signup.success') . '?session_id={CHECKOUT_SESSION_ID}',
             'cancel_url'            => route('signup') . '?plan=' . $request->plan . '&billing=' . $request->billing,
             'allow_promotion_codes' => true,
@@ -180,6 +184,7 @@ class SignupController extends Controller
                     'signup_stripe_customer'     => $stripeSession->customer,
                     'signup_stripe_subscription' => $stripeSession->subscription?->id,
                     'signup_trial_end'           => $stripeSession->subscription?->trial_end,
+                    'signup_skip_trial'          => $stripeSession->subscription?->trial_end === null,
                 ]);
             }
 
