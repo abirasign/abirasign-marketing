@@ -156,7 +156,7 @@
             <div>
                 <div class="feat-label">Forms &amp; intake</div>
                 <h2>Build intake forms from scratch — no coding required</h2>
-                <p>AbiraSign's drag-and-drop form builder lets you create custom intake forms, questionnaires, and consent documents without uploading a PDF. Build once, send to anyone.</p>
+                <p>AbiraSign's form builder lets you create custom intake forms, questionnaires, and consent documents without uploading a PDF. Build once, send to anyone.</p>
                 <p>Bundle multiple documents into a single packet — patients or clients complete everything in one seamless session from a single link.</p>
                 <div class="feat-checks">
                     <div class="feat-check"><span class="ck">✓</span><span><strong>Rich field types</strong> — text, yes/no, multi-choice, checkbox, date, paragraph, signature, and disclaimer blocks</span></div>
@@ -171,7 +171,7 @@
                 <div style="display:flex; flex-direction:column; gap:8px;">
                     <div class="feat-mock-row"><div class="dot teal"></div> Full name <span style="margin-left:auto;"><span class="feat-mock-badge teal">Text</span></span></div>
                     <div class="feat-mock-row"><div class="dot teal"></div> Date of birth <span style="margin-left:auto;"><span class="feat-mock-badge teal">Date</span></span></div>
-                    <div class="feat-mock-row"><div class="dot teal"></div> Have you had surgery in the last 6 months? <span style="margin-left:auto;"><span class="feat-mock-badge teal">Yes / No</span></span></div>
+                    <div class="feat-mock-row" style="flex-wrap:nowrap;"><div class="dot teal"></div> <span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Have you had surgery in the last 6 months?</span> <span style="flex-shrink:0; margin-left:8px;"><span class="feat-mock-badge teal">Yes / No</span></span></div>
                     <div class="feat-mock-row"><div class="dot teal"></div> Current medications <span style="margin-left:auto;"><span class="feat-mock-badge teal">Paragraph</span></span></div>
                     <div class="feat-mock-row"><div class="dot teal"></div> Patient consent <span style="margin-left:auto;"><span class="feat-mock-badge green">Disclaimer + Sig</span></span></div>
                 </div>
@@ -196,7 +196,7 @@
                 <p>No app downloads, no accounts, no friction. Recipients open a link, complete the form, and you're notified instantly.</p>
                 <div class="feat-checks">
                     <div class="feat-check"><span class="ck">✓</span><span><strong>Email &amp; SMS delivery</strong> — send secure signing links via email, text, or both</span></div>
-                    <div class="feat-check"><span class="ck">✓</span><span><strong>Automated reminders</strong> — follow up on pending documents automatically</span></div>
+                    <div class="feat-check"><span class="ck">✓</span><span><strong>Manual reminders</strong> — resend a secure link to anyone with a pending document in one click</span></div>
                     <div class="feat-check"><span class="ck">✓</span><span><strong>No account required</strong> — recipients sign from any device without creating a login</span></div>
                     <div class="feat-check"><span class="ck">✓</span><span><strong>Instant notifications</strong> — get notified the moment a document is completed</span></div>
                     <div class="feat-check"><span class="ck">✓</span><span><strong>Location-scoped sending</strong> — multi-location teams send and manage documents per location</span></div>
@@ -208,7 +208,7 @@
                     <div class="feat-mock-row"><div class="dot green"></div> Sarah Johnson — New Patient Intake <span style="margin-left:auto;"><span class="feat-mock-badge green">Completed</span></span></div>
                     <div class="feat-mock-row"><div class="dot amber"></div> Michael Torres — Consent Form <span style="margin-left:auto;"><span class="feat-mock-badge amber">Pending</span></span></div>
                     <div class="feat-mock-row"><div class="dot teal"></div> Lisa Chen — HIPAA Authorization <span style="margin-left:auto;"><span class="feat-mock-badge teal">Opened</span></span></div>
-                    <div class="feat-mock-row"><div class="dot gray"></div> James Park — Service Agreement <span style="margin-left:auto;"><span class="feat-mock-badge amber">Reminded</span></span></div>
+                    <div class="feat-mock-row"><div class="dot gray"></div> James Park — Service Agreement <span style="margin-left:auto;"><span class="feat-mock-badge amber">Pending</span></span></div>
                 </div>
                 <div style="display:flex; gap:8px; margin-top:4px;">
                     <span class="feat-mock-badge green">Email ✓</span>
@@ -225,8 +225,8 @@
         <div class="feat-inner reverse">
             <div>
                 <div class="feat-label">Kiosk mode</div>
-                <h2>In-person signing — right in your waiting room</h2>
-                <p>Set up a tablet or computer at your front desk and let patients or clients complete their intake forms on-site — no email, no link, no staff involvement required.</p>
+                <h2>In-person signing — right in your office</h2>
+                <p>Set up a tablet or computer at your front desk and let patients or clients complete their forms on-site — no email, no link, no staff involvement required.</p>
                 <p>Kiosk mode is PIN-protected, auto-resets after each session, and wipes the screen if the tab loses focus — keeping every patient's information private.</p>
                 <div class="feat-checks">
                     <div class="feat-check"><span class="ck">✓</span><span><strong>PIN-protected launch</strong> — staff enter a PIN to start each session, patients can't access the dashboard</span></div>
@@ -346,7 +346,6 @@
                     <div class="plan-badge-item"><span class="ck">✓</span> Email delivery</div>
                     <div class="plan-badge-item"><span class="ck">✓</span> Dedicated database</div>
                     <div class="plan-badge-item"><span class="nx">✕</span> No HIPAA / PHI</div>
-                    <div class="plan-badge-item"><span class="nx">✕</span> No form builder</div>
                 </div>
             </div>
 
