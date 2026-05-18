@@ -217,9 +217,9 @@
             @endif
         </div>
 
-        <a href="{{ env('APP_LOGIN_URL', 'https://dev.abirasign.com/login') }}" class="btn btn-primary">
-            Log in to your account →
-        </a>
+        <div class="notice-box green" style="text-align:center; margin-top:8px;">
+            📧 <strong>Check your inbox at {{ $email ?? 'your email' }}</strong> — your account setup link is on its way. Click it to set your password and log in.
+        </div>
 
     </div>
 </div>
