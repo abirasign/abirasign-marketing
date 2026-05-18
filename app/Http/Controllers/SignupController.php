@@ -143,9 +143,11 @@ class SignupController extends Controller
                 'quantity' => (int) $request->num_users,
             ]],
             'subscription_data'     => $subscriptionData,
+            'saved_payment_method_options' => [
+                'payment_method_save' => 'disabled',
+            ],
             'success_url'           => route('signup.success') . '?session_id={CHECKOUT_SESSION_ID}',
             'cancel_url'            => route('signup') . '?plan=' . $request->plan . '&billing=' . $request->billing,
-            'allow_promotion_codes' => true,
         ]);
 
         return redirect($checkoutSession->url);
