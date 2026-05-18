@@ -522,9 +522,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Restore skip_trial state after validation failure (old input)
     const oldSkipTrial = '{{ old("skip_trial", "0") }}';
     if (oldSkipTrial === '1') {
-        const skipToggle = document.getElementById('skipTrialToggle');
-        if (skipToggle && !skipToggle.closest('#skipTrialWrap').style.display === 'none') {
-            skipToggle.checked = true;
+        const skipWrap = document.getElementById('skipTrialWrap');
+        if (skipWrap && skipWrap.style.display !== 'none') {
+            document.getElementById('skipTrialToggle').checked = true;
             onSkipTrialChange();
         }
     }
