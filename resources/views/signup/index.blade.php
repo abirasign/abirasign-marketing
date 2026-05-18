@@ -342,8 +342,9 @@ const PRICES = {
 };
 
 const urlParams   = new URLSearchParams(window.location.search);
-const initPlan    = urlParams.get('plan')    || '{{ old("plan", $plan) }}';
-const initBilling = urlParams.get('billing') || '{{ old("billing", $billing) }}';
+const hasOldInput = '{{ session()->hasOldInput() ? "1" : "0" }}' === '1';
+const initPlan    = hasOldInput ? '{{ old("plan", $plan) }}' : (urlParams.get('plan') || '{{ $plan }}');
+const initBilling = hasOldInput ? '{{ old("billing", $billing) }}' : (urlParams.get('billing') || '{{ $billing }}');
 
 function formatPrice(perUser, users) {
     const total = (perUser * users).toFixed(2);
@@ -469,7 +470,6 @@ function onPlanChange() {
         hipaaStatus.className            = 'hipaa-status included';
         hipaaStatus.innerHTML            = '<span>✓</span> HIPAA compliance + BAA included';
         lockUsers(false);
-    }
     } else {
         // Starter
         if (billingToggleWrap) billingToggleWrap.style.display = 'flex';
@@ -518,6 +518,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('input[name="plan"][value="payg"]').checked = true;
     }
     onPlanChange();
+
+    // Restore skip_trial state after validation failure (old input)
+    const oldSkipTrial = '{{ old("skip_trial", "0") }}';
+    if (oldSkipTrial === '1') {
+        const skipToggle = document.getElementById('skipTrialToggle');
+        if (skipToggle && !skipToggle.closest('#skipTrialWrap').style.display === 'none') {
+            skipToggle.checked = true;
+            onSkipTrialChange();
+        }
+    }
 });
 </script>
 @endpush
