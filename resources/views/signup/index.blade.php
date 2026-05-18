@@ -168,7 +168,8 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="num_users">Number of staff</label>
-                        <input type="number" id="num_users" name="num_users" class="form-input {{ $errors->has('num_users') ? 'error' : '' }}" value="{{ old('num_users', 1) }}" min="1" max="999" placeholder="1" oninput="updatePrices()">
+                        <input type="number" id="num_users" class="form-input {{ $errors->has('num_users') ? 'error' : '' }}" value="{{ old('num_users', 1) }}" min="1" max="999" placeholder="1" oninput="document.getElementById('num_users_hidden').value=this.value;updatePrices();">
+                        <input type="hidden" id="num_users_hidden" name="num_users" value="{{ old('num_users', 1) }}">
                         @error('num_users')<span class="form-error">{{ $message }}</span>@enderror
                     </div>
                 </div>
@@ -268,8 +269,8 @@
                         <input type="checkbox" id="skipTrialToggle" onchange="onSkipTrialChange()"
                                style="width:15px;height:15px;margin-top:2px;flex-shrink:0;accent-color:var(--teal);cursor:pointer;">
                         <span style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
-                            <strong style="color:var(--text-primary);">Skip the trial — I need HIPAA access right away.</strong>
-                            Your card will be charged immediately and HIPAA compliance + BAA will be available from day one.
+                            <strong style="color:var(--text-primary);" id="skipTrialLabel">Skip the trial — start with multiple users from day one.</strong>
+                            <span id="skipTrialDesc">Your card will be charged immediately and your account will be fully active from day one.</span>
                         </span>
                     </label>
                 </div>
@@ -316,6 +317,25 @@
 
 @push('scripts')
 <script>
+function lockUsers(locked) {
+    const el     = document.getElementById('num_users');
+    const hidden = document.getElementById('num_users_hidden');
+    if (locked) {
+        el.value    = 1;
+        el.disabled = true;
+        el.style.background = 'var(--bg-alt)';
+        el.style.color      = 'var(--text-muted)';
+        el.style.cursor     = 'not-allowed';
+    } else {
+        el.disabled = false;
+        el.style.background = '#fff';
+        el.style.color      = 'var(--text-primary)';
+        el.style.cursor     = 'auto';
+    }
+    hidden.value = el.value;
+    updatePrices();
+}
+
 const PRICES = {
     starter:      { monthly: 45.00, annual: 40.50 },
     professional: { monthly: 75.00, annual: 67.50 },
@@ -363,17 +383,30 @@ function onBillingChange(isAnnual) {
 }
 
 function onSkipTrialChange() {
-    const checked = document.getElementById('skipTrialToggle').checked;
+    const checked  = document.getElementById('skipTrialToggle').checked;
+    const selected = document.querySelector('input[name="plan"]:checked')?.value;
     document.getElementById('skipTrialInput').value = checked ? '1' : '0';
+
     const trialNotice        = document.getElementById('trialNotice');
     const hipaaToggleSection = document.getElementById('hipaaToggleSection');
     const hipaaToggle        = document.getElementById('hipaaToggle');
-    trialNotice.style.display        = checked ? 'none' : 'block';
-    hipaaToggleSection.style.display = checked ? 'block' : 'none';
-    if (!checked) {
-        hipaaToggle.checked = false;
-        onHipaaChange(false);
+
+    trialNotice.style.display = checked ? 'none' : 'block';
+
+    // Professional: show HIPAA toggle when skipping trial
+    if (selected === 'professional') {
+        hipaaToggleSection.style.display = checked ? 'block' : 'none';
+        if (!checked) {
+            hipaaToggle.checked = false;
+            onHipaaChange(false);
+        }
     }
+
+    // Unlock users when skipping trial, lock when on trial
+    lockUsers(!checked);
+
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = checked ? 'Start now →' : 'Start free trial →';
 }
 
 function onHipaaChange(isOn) {
@@ -409,12 +442,13 @@ function onPlanChange() {
     document.getElementById('skipTrialInput').value = '0';
 
     if (selected === 'payg') {
-        // PAYG: hide billing toggle, hide HIPAA entirely, show PAYG notice
+        // PAYG: hide billing toggle, hide HIPAA entirely, show PAYG notice, lock to 1 user
         if (billingToggleWrap) billingToggleWrap.style.display = 'none';
         hipaaSection.style.display       = 'none';
         hipaaToggleSection.style.display = 'none';
         hipaaToggle.checked              = false;
         paygNotice.style.display         = 'block';
+        lockUsers(true);
     } else if (selected === 'professional') {
         if (billingToggleWrap) billingToggleWrap.style.display = 'flex';
         hipaaSection.style.display       = 'block';
@@ -424,6 +458,9 @@ function onPlanChange() {
         hipaaStatus.style.display = 'none';
         trialNotice.style.display = 'block';
         document.getElementById('skipTrialWrap').style.display = 'block';
+        document.getElementById('skipTrialLabel').textContent = 'Skip the trial — I need HIPAA access and multiple users from day one.';
+        document.getElementById('skipTrialDesc').textContent  = 'Your card will be charged immediately and HIPAA compliance + BAA will be available from day one.';
+        lockUsers(true);
     } else if (selected === 'enterprise') {
         if (billingToggleWrap) billingToggleWrap.style.display = 'flex';
         hipaaSection.style.display       = 'block';
@@ -431,6 +468,8 @@ function onPlanChange() {
         hipaaStatus.style.display        = 'flex';
         hipaaStatus.className            = 'hipaa-status included';
         hipaaStatus.innerHTML            = '<span>✓</span> HIPAA compliance + BAA included';
+        lockUsers(false);
+    }
     } else {
         // Starter
         if (billingToggleWrap) billingToggleWrap.style.display = 'flex';
@@ -441,6 +480,10 @@ function onPlanChange() {
         hipaaStatus.innerHTML            = '<span>⚠</span> No HIPAA — general use only';
         hipaaToggle.checked              = false;
         trialNotice.style.display        = 'block';
+        document.getElementById('skipTrialWrap').style.display = 'block';
+        document.getElementById('skipTrialLabel').textContent = 'Skip the trial — start with multiple users from day one.';
+        document.getElementById('skipTrialDesc').textContent  = 'Your card will be charged immediately and your account will be fully active from day one.';
+        lockUsers(true);
     }
 
     const btn = document.getElementById('submitBtn');
