@@ -100,6 +100,10 @@
         <div class="contact-card">
             <h2>Send us a message</h2>
             <p class="contact-card-sub">We'll get back to you within one business day.</p>
+            <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius-md);padding:11px 14px;margin-bottom:20px;font-size:13px;color:#0c4a6e;line-height:1.6;">
+                🛠 <strong>Existing customer looking for support?</strong>
+                <a href="{{ route('support.request') }}" style="color:var(--teal);font-weight:600;">Submit a support request here →</a>
+            </div>
 
             @if($errors->any())
                 <div class="alert-error">
