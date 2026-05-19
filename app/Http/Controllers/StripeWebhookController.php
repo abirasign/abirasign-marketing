@@ -210,11 +210,14 @@ class StripeWebhookController extends Controller
         $newNumUsers = $item?->quantity ?? $row->num_users ?? null;
 
         $updates = [
-            'status'       => $status,
-            'next_billing' => $nextBilling,
+            'status'         => $status,
+            'next_billing'   => $nextBilling,
             'trial_end_date' => $trialEnd,
-            'updated_at'   => now(),
+            'updated_at'     => now(),
         ];
+        if ($newNumUsers && (int) $newNumUsers !== (int) $row->num_users) {
+            $updates['num_users'] = (int) $newNumUsers;
+        }
 
         if ($newPlanType && $newPlanType !== $row->plan_type) {
             $updates['plan_type']    = $newPlanType;
@@ -224,6 +227,13 @@ class StripeWebhookController extends Controller
         DB::table('subscriptions')
             ->where('stripe_sub_id', $subscription->id)
             ->update($updates);
+
+        // Sync num_users to tenants table when quantity changes
+        if (isset($updates['num_users'])) {
+            DB::table('tenants')
+                ->where('tenant_id', $row->tenant_id)
+                ->update(['num_users' => $updates['num_users'], 'updated_at' => now()]);
+        }
 
         // If trial just converted to active, send conversion email
         if ($row->status === 'trialing' && $status === 'active') {
