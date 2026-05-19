@@ -230,9 +230,54 @@ class StripeWebhookController extends Controller
 
         // Sync num_users to tenants table when quantity changes
         if (isset($updates['num_users'])) {
+            $newSeatCount = (int) $updates['num_users'];
+
             DB::table('tenants')
                 ->where('tenant_id', $row->tenant_id)
-                ->update(['num_users' => $updates['num_users'], 'updated_at' => now()]);
+                ->update(['num_users' => $newSeatCount, 'updated_at' => now()]);
+
+            // Check if tenant is now over seat limit
+            $tenant = DB::table('tenants')->where('tenant_id', $row->tenant_id)->first();
+            if ($tenant) {
+                try {
+                    config(['database.connections.tenant_webhook' => [
+                        'driver'    => 'mysql',
+                        'host'      => '127.0.0.1',
+                        'port'      => 3306,
+                        'database'  => $tenant->db_name,
+                        'username'  => $tenant->db_user,
+                        'password'  => env('DB_PASSWORD'),
+                        'charset'   => 'utf8mb4',
+                        'collation' => 'utf8mb4_unicode_ci',
+                    ]]);
+                    DB::purge('tenant_webhook');
+
+                    $activeUsers = DB::connection('tenant_webhook')
+                        ->table('users')
+                        ->where('status', 'active')
+                        ->count();
+
+                    if ($activeUsers > $newSeatCount) {
+                        // Set 3-day grace period and notify owners
+                        $graceExpiry = now()->addDays(3);
+                        DB::table('tenants')
+                            ->where('tenant_id', $row->tenant_id)
+                            ->update(['seat_grace_expires_at' => $graceExpiry, 'updated_at' => now()]);
+
+                        $this->sendSeatGraceEmail($row->tenant_id, $activeUsers, $newSeatCount, $graceExpiry->format('F j, Y'));
+                    } else {
+                        // Under limit — clear any existing grace period
+                        DB::table('tenants')
+                            ->where('tenant_id', $row->tenant_id)
+                            ->update(['seat_grace_expires_at' => null, 'updated_at' => now()]);
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Seat limit check failed in webhook', [
+                        'tenant_id' => $row->tenant_id,
+                        'error'     => $e->getMessage(),
+                    ]);
+                }
+            }
         }
 
         // If trial just converted to active, send conversion email
@@ -952,6 +997,58 @@ class StripeWebhookController extends Controller
             });
         } catch (\Exception $e) {
             \Log::error('Quote payment notification failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    private function sendSeatGraceEmail(string $tenantId, int $activeUsers, int $seatLimit, string $graceDate): void
+    {
+        $owners = DB::table('user_tenants')
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->get();
+
+        if ($owners->isEmpty()) return;
+
+        $billingUrl = env('APP_URL', 'https://app.abirasign.com') . '/billing';
+        $usersUrl   = env('APP_URL', 'https://app.abirasign.com') . '/settings/users';
+        $subject    = '[AbiraSign] Action required — account over seat limit';
+
+        $html = "
+            <div style='font-family:sans-serif;max-width:600px;color:#111827;'>
+                <div style='margin-bottom:24px;'>
+                    <span style='font-size:20px;font-weight:700;'>Abira<span style='color:#0E7490;'>Sign</span></span>
+                </div>
+                <h2 style='font-size:18px;font-weight:700;color:#b91c1c;margin-bottom:12px;'>Your account is over its seat limit</h2>
+                <p style='font-size:15px;color:#374151;line-height:1.7;'>
+                    Your subscription has been reduced to <strong>{$seatLimit} seat(s)</strong>, but you currently have
+                    <strong>{$activeUsers} active users</strong>. You need to deactivate
+                    <strong>" . ($activeUsers - $seatLimit) . " user(s)</strong> to come back within your limit.
+                </p>
+                <p style='font-size:15px;color:#374151;line-height:1.7;'>
+                    <strong>If no action is taken by {$graceDate}</strong>, the user(s) with the least recent login
+                    activity will be automatically deactivated.
+                </p>
+                <div style='display:flex;gap:12px;margin-top:20px;'>
+                    <a href='{$usersUrl}' style='background:#b91c1c;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600;'>Manage users →</a>
+                    <a href='{$billingUrl}' style='background:#fff;color:#534AB7;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600;border:1px solid #534AB7;'>Add seats instead →</a>
+                </div>
+                <hr style='border:none;border-top:1px solid #E5E7EB;margin:24px 0;'>
+                <p style='font-size:12px;color:#9CA3AF;'>© " . date('Y') . " BrightNet Technologies LLC, DBA AbiraSign</p>
+            </div>
+        ";
+
+        foreach ($owners as $owner) {
+            try {
+                Mail::html($html, function ($mail) use ($owner, $subject) {
+                    $mail->to($owner->email)->subject($subject);
+                });
+            } catch (\Exception $e) {
+                \Log::error('Seat grace email failed', [
+                    'email'     => $owner->email,
+                    'tenant_id' => $tenantId,
+                    'error'     => $e->getMessage(),
+                ]);
+            }
         }
     }
 }
