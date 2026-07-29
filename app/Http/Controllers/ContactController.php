@@ -58,6 +58,7 @@ class ContactController extends Controller
             });
 
             // Confirmation email to sender
+            $helloEmail = config('company.hello_email');
             $confirmHtml = "
                 <div style='font-family: sans-serif; max-width: 600px; color: #111827;'>
                     <div style='margin-bottom: 24px;'>
@@ -67,10 +68,10 @@ class ContactController extends Controller
                     <p style='font-size: 15px; color: #6B7280; line-height: 1.7; margin-bottom: 14px;'>We've received your message and someone from our team will get back to you within one business day.</p>
                     <p style='font-size: 15px; color: #6B7280; line-height: 1.7; margin-bottom: 24px;'>In the meantime, feel free to explore our <a href='https://abirasign.com/pricing' style='color: #0E7490;'>pricing page</a> or learn more about our <a href='https://abirasign.com/#hipaa' style='color: #0E7490;'>HIPAA compliance add-on</a>.</p>
                     <div style='background: #F0FDFA; border: 1px solid #99F6E4; border-radius: 8px; padding: 20px 24px; margin-bottom: 24px;'>
-                        <p style='font-size: 14px; color: #134E4A; margin: 0; line-height: 1.65;'><strong>Your message has been received.</strong> We take every inquiry seriously and will respond promptly. If your matter is urgent, you can also reach us directly at <a href='mailto:hello@abirasign.com' style='color: #0E7490;'>hello@abirasign.com</a>.</p>
+                        <p style='font-size: 14px; color: #134E4A; margin: 0; line-height: 1.65;'><strong>Your message has been received.</strong> We take every inquiry seriously and will respond promptly. If your matter is urgent, you can also reach us directly at <a href='mailto:" . e($helloEmail) . "' style='color: #0E7490;'>" . e($helloEmail) . "</a>.</p>
                     </div>
                     <hr style='border: none; border-top: 1px solid #E5E7EB; margin: 24px 0;'>
-                    <p style='font-size: 12px; color: #9CA3AF; line-height: 1.6;'>This is an automated confirmation. Please do not reply to this email — replies are not monitored. To reach us directly, email <a href='mailto:hello@abirasign.com' style='color: #0E7490;'>hello@abirasign.com</a>.</p>
+                    <p style='font-size: 12px; color: #9CA3AF; line-height: 1.6;'>This is an automated confirmation. Please do not reply to this email — replies are not monitored. To reach us directly, email <a href='mailto:" . e($helloEmail) . "' style='color: #0E7490;'>" . e($helloEmail) . "</a>.</p>
                     <p style='font-size: 12px; color: #9CA3AF;'>© " . date('Y') . " BrightNet Technologies LLC, DBA AbiraSign · Georgia, United States</p>
                 </div>
             ";

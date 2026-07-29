@@ -708,7 +708,7 @@ class StripeWebhookController extends Controller
         try {
             Mail::html($html, function ($mail) use ($tenant, $name) {
                 $mail->to($tenant->primary_email, $name)
-                     ->replyTo('hello@abirasign.com', 'AbiraSign')
+                     ->replyTo(config('company.hello_email'), 'AbiraSign')
                      ->subject('[AbiraSign] Your trial has been cancelled');
             });
         } catch (\Exception $e) {
@@ -742,7 +742,7 @@ class StripeWebhookController extends Controller
         try {
             Mail::html($html, function ($mail) use ($tenant, $name) {
                 $mail->to($tenant->primary_email, $name)
-                     ->replyTo('hello@abirasign.com', 'AbiraSign')
+                     ->replyTo(config('company.hello_email'), 'AbiraSign')
                      ->subject('[AbiraSign] Subscription cancelled — access ends ' . ($endDate ?? 'soon'));
             });
         } catch (\Exception $e) {
@@ -764,9 +764,12 @@ class StripeWebhookController extends Controller
         if ($quoteToken) {
             DB::table('quotes')
                 ->where('token', $quoteToken)
-                ->update(['payment_method' => 'stripe']);
+                ->update([
+                    'status'         => 'accepted',
+                    'accepted_at'    => now(),
+                    'payment_method' => 'stripe',
+                ]);
         }
-
         $this->sendQuotePaymentNotification(
             $quoteId, $clientName, $contactName, $billingTerm,
             $session->amount_total, $hipaa, $session->customer
@@ -794,6 +797,7 @@ class StripeWebhookController extends Controller
         $name   = $tenant->primary_contact ?? $tenant->client_name;
         $amount = '$' . number_format($intent->amount / 100, 2);
         $date   = date('F j, Y');
+        $supportEmail = config('company.support_email');
 
         $html = "
             <div style='font-family:sans-serif;max-width:600px;color:#111827;'>
@@ -808,7 +812,7 @@ class StripeWebhookController extends Controller
                     <tr><td style='padding:8px 0;color:#6B7280;'>Description</td><td style='padding:8px 0;'>1 envelope sent via AbiraSign</td></tr>
                     <tr><td style='padding:8px 0;color:#6B7280;'>Sent by</td><td style='padding:8px 0;'>" . e($metadata->user_email ?? '—') . "</td></tr>
                 </table>
-                <p style='font-size:13px;color:#6B7280;'>Questions? Reply to this email or contact <a href='mailto:support@abirasign.com' style='color:#534AB7;'>support@abirasign.com</a>.</p>
+                <p style='font-size:13px;color:#6B7280;'>Questions? Reply to this email or contact <a href='mailto:{$supportEmail}' style='color:#534AB7;'>{$supportEmail}</a>.</p>
                 <hr style='border:none;border-top:1px solid #E5E7EB;margin:24px 0;'>
                 <p style='font-size:12px;color:#9CA3AF;'>© " . date('Y') . " BrightNet Technologies LLC, DBA AbiraSign</p>
             </div>
