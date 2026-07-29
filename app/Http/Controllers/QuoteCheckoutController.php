@@ -17,7 +17,7 @@ class QuoteCheckoutController extends Controller
             abort(404);
         }
 
-        if ($quote->status !== 'accepted') {
+        if (!in_array($quote->status, ['sent', 'accepted'])) {
             abort(403, 'This quote is not available for payment.');
         }
 
