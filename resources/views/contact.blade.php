@@ -41,6 +41,7 @@
     .submit-btn:hover { opacity: .9; }
     .form-footer { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 14px; line-height: 1.6; }
     .alert-error { background: #FEF2F2; border: 1px solid #FECACA; border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 20px; font-size: 14px; color: #B91C1C; }
+    .hp-field { position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; overflow: hidden; }
     @media (max-width: 860px) {
         .contact-grid { grid-template-columns: 1fr; gap: 32px; }
         .contact-left { padding-top: 0; }
@@ -112,9 +113,16 @@
             @endif
 
             <form method="POST" action="{{ route('contact.submit') }}">
-                @csrf
+                  @csrf
 
-                <div class="form-row">
+                  {{-- Honeypot: real visitors never see or fill this. Bots fill every field they find. --}}
+                  <div class="hp-field" aria-hidden="true">
+                      <label for="website">Website</label>
+                      <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+                  </div>
+                  <input type="hidden" name="form_token" value="{{ $formToken }}">
+
+                  <div class="form-row">
                     <div class="form-group">
                         <label class="form-label" for="name">Your name</label>
                         <input type="text" id="name" name="name" class="form-input {{ $errors->has('name') ? 'error' : '' }}" value="{{ old('name') }}" placeholder="Jane Smith" autocomplete="name">

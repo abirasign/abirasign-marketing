@@ -9,11 +9,36 @@ class ContactController extends Controller
 {
     public function show()
     {
-        return view('contact');
+        return view('contact', [
+            'formToken' => encrypt(now()->timestamp),
+        ]);
     }
 
     public function submit(Request $request)
     {
+        // Honeypot: bots fill every field they find, real users never see this one.
+        // Pretend success so the bot doesn't adapt.
+        if (!empty($request->input('website'))) {
+            \Log::info('Contact form honeypot triggered', ['ip' => $request->ip()]);
+            session(['contact_name' => $request->input('name', 'there')]);
+            return redirect()->route('contact.thankyou');
+        }
+
+        // Time-trap: reject submissions faster than a human could plausibly fill the form.
+        // Token is encrypted (not a plain timestamp) so it can't be trivially rewritten.
+        try {
+            $loadedAt = (int) decrypt($request->input('form_token'));
+            if (now()->timestamp - $loadedAt < 5) {
+                \Log::info('Contact form time-trap triggered', ['ip' => $request->ip()]);
+                session(['contact_name' => $request->input('name', 'there')]);
+                return redirect()->route('contact.thankyou');
+            }
+        } catch (\Exception $e) {
+            \Log::info('Contact form token invalid or missing', ['ip' => $request->ip()]);
+            session(['contact_name' => $request->input('name', 'there')]);
+            return redirect()->route('contact.thankyou');
+        }
+
         $request->validate([
             'name'    => 'required|string|max:255',
             'email'   => 'required|email|max:255',

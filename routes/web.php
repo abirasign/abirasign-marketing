@@ -34,7 +34,7 @@ Route::get('/support/request', [SupportController::class, 'request'])->name('sup
 Route::post('/support/request', [SupportController::class, 'submit'])->name('support.submit');
 Route::get('/support/thank-you', [SupportController::class, 'thankYou'])->name('support.thankyou');
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
-Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
+Route::post('/contact', [ContactController::class, 'submit'])->middleware('throttle:5,60')->name('contact.submit');
 Route::get('/contact/thank-you', [ContactController::class, 'thankYou'])->name('contact.thankyou');
 
 // Signup flow
