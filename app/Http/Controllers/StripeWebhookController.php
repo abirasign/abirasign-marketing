@@ -35,6 +35,8 @@ class StripeWebhookController extends Controller
             'invoice.payment_failed'               => $this->handlePaymentFailed($event->data->object),
             'setup_intent.succeeded'               => $this->handleSetupIntentSucceeded($event->data->object),
             'payment_intent.succeeded'             => $this->handlePaymentIntentSucceeded($event->data->object),
+            'checkout.session.async_payment_succeeded' => $this->handleAsyncPaymentSucceeded($event->data->object),
+            'checkout.session.async_payment_failed'    => $this->handleAsyncPaymentFailed($event->data->object),
             default                                => null,
         };
 
@@ -775,6 +777,63 @@ class StripeWebhookController extends Controller
             $session->amount_total, $hipaa, $session->customer
         );
     }
+
+    // ── Async bank debit (ACH) cleared successfully ─────────────────────────
+    private function handleAsyncPaymentSucceeded($session)
+    {
+        \Log::info('Stripe checkout.session.async_payment_succeeded', [
+            'session_id' => $session->id,
+            'metadata'   => $session->metadata,
+        ]);
+        // No action needed — quote was already marked accepted at checkout.session.completed.
+        // This just confirms the bank debit actually cleared.
+    }
+
+    // ── Async bank debit (ACH) failed to clear ───────────────────────────────
+    private function handleAsyncPaymentFailed($session)
+    {
+        $metadata = $session->metadata;
+
+        \Log::warning('Stripe checkout.session.async_payment_failed', [
+            'session_id' => $session->id,
+            'metadata'   => $metadata,
+        ]);
+
+        if (($metadata->type ?? '') !== 'quote') return;
+
+        $quoteToken  = $metadata->quote_token  ?? null;
+        $quoteId     = $metadata->quote_id     ?? '—';
+        $clientName  = $metadata->client_name  ?? '—';
+        $contactName = $metadata->contact_name ?? '—';
+
+        if ($quoteToken) {
+            DB::table('quotes')
+                ->where('token', $quoteToken)
+                ->update([
+                    'status'         => 'sent',
+                    'decline_reason' => 'ACH payment failed to clear (Stripe async_payment_failed webhook, ' . now()->toDateTimeString() . ')',
+                    'accepted_at'    => null,
+                ]);
+        }
+
+        try {
+            Mail::html(
+                "<p><strong>An Enterprise quote's ACH payment failed to clear.</strong></p>
+                <p>Quote: " . e($quoteId) . "<br>
+                Client: " . e($clientName) . "<br>
+                Contact: " . e($contactName) . "<br>
+                Session: " . e($session->id) . "</p>
+                <p>The quote has been reverted to 'sent' status. Do not provision this client until a valid payment is confirmed.</p>",
+                function ($mail) use ($quoteId) {
+                    $mail->to('choskins@abirasign.com')
+                         ->subject('[AbiraSign] ACH payment FAILED — Quote ' . $quoteId);
+                }
+            );
+        } catch (\Exception $e) {
+            \Log::error('Failed to send ACH failure alert email', ['error' => $e->getMessage()]);
+        }
+    }
+
     // ── PAYG envelope charge receipt ──────────────────────────────────────────
     private function handlePaymentIntentSucceeded($intent)
     {
